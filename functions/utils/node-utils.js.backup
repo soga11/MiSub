@@ -111,33 +111,21 @@ export function addFlagEmoji(link) {
  * [核心修复] 修复节点URL中的编码问题（包含 Hysteria2 密码解码）
  */
 export function fixNodeUrlEncoding(nodeUrl) {
-    // [完整修复] Hysteria2 密码解码（支持 password, auth, obfs-password）
-    if (nodeUrl.startsWith('hysteria2://') || nodeUrl.startsWith('hy2://')) {
-        const safeDecode = (value) => {
+    // 1. 针对 Hysteria2 的 obfs-password 进行解码
+    if (nodeUrl.startsWith('hysteria2://')) {
+        // 查找 obfs-password= 及其后的值，并进行 URL 解码
+        // 例如：obfs-password=Aq112211%21 -> obfs-password=Aq112211!
+        nodeUrl = nodeUrl.replace(/([?&]obfs-password=)([^&]+)/g, (match, prefix, value) => {
             try {
-                return decodeURIComponent(value);
+                return prefix + decodeURIComponent(value);
             } catch (e) {
-                return value;
+                return match;
             }
-        };
-        const shouldKeepRaw = (decoded) => /[&=]/.test(decoded);
-
-        // 1. 处理 @ 前的认证信息
-        nodeUrl = nodeUrl.replace(/^(hysteria2|hy2):\/\/([^@]+)@/i, (match, scheme, auth) => {
-            const decodedAuth = safeDecode(auth);
-            if (decodedAuth === auth) return match;
-            if (/[@/?#]/.test(decodedAuth)) return match;
-            return `${scheme}://${decodedAuth}@`;
         });
-
-        // 2. 处理 password, auth, obfs-password 参数（不区分大小写）
-        return nodeUrl.replace(/([?&](?:obfs-password|auth|password)=)([^&]+)/gi, (match, prefix, value) => {
-            const decoded = safeDecode(value);
-            return shouldKeepRaw(decoded) ? match : `${prefix}${decoded}`;
-        });
+        return nodeUrl;
     }
 
-    // 其他协议的 Base64 修复逻辑
+    // 2. 其他协议的 Base64 修复逻辑
     if (!nodeUrl.startsWith('ss://') && !nodeUrl.startsWith('vless://') && !nodeUrl.startsWith('trojan://')) {
         return nodeUrl;
     }
