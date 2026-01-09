@@ -1,6 +1,6 @@
 /**
- * Hysteria/Hysteria2配置转换为URL
- * 支持完整参数：TLS、端口跳跃、混淆、带宽限制
+ * Hysteria/Hysteria2 配置转换为URL
+ * 支持完整参数：ports、obfs、ALPN、SNI、up/down等
  */
 export function convertHysteriaToUrl(proxy) {
     try {
@@ -11,10 +11,13 @@ export function convertHysteriaToUrl(proxy) {
         const isHysteria2 = proxy.type === 'hysteria2' || proxy.type === 'hy2';
         const protocol = isHysteria2 ? 'hysteria2' : 'hysteria';
 
-        // 获取认证信息
+        // ✅ 密码解码（如果包含 URL 编码）
         const auth = proxy.password || proxy.auth || proxy['auth-str'] || '';
+        const decodedAuth = typeof auth === 'string' && auth.includes('%')
+            ? decodeURIComponent(auth)
+            : auth;
 
-        if (!auth) {
+        if (!decodedAuth) {
             return null;
         }
 
@@ -25,35 +28,17 @@ export function convertHysteriaToUrl(proxy) {
             portStr = proxy.ports;
         }
 
-        // 构建基础 URL
-        let url = `${protocol}://${encodeURIComponent(auth)}@${proxy.server}:${portStr}`;
-
         const params = new URLSearchParams();
 
-        // Hysteria1 特有参数
-        if (!isHysteria2) {
-            if (proxy.protocol) {
-                params.set('protocol', proxy.protocol);
-            }
-            if (proxy['auth-str']) {
-                params.set('auth', proxy['auth-str']);
-            }
-            // 上下行带宽 (Hysteria1 必须)
-            if (proxy.up) {
-                params.set('upmbps', String(proxy.up).replace(/\D/g, ''));
-            }
-            if (proxy.down) {
-                params.set('downmbps', String(proxy.down).replace(/\D/g, ''));
-            }
-        }
-
-        // 通用 TLS 参数
+        // SNI
         if (proxy.sni || proxy.servername) {
             params.set('sni', proxy.sni || proxy.servername);
         }
 
-        if (proxy['client-fingerprint'] || proxy.fingerprint) {
-            params.set('pinSHA256', proxy['client-fingerprint'] || proxy.fingerprint);
+        // 跳过证书验证
+        if (proxy['skip-cert-verify']) {
+            params.set('insecure', '1');
+            params.set('allowInsecure', '1');
         }
 
         // ALPN
@@ -62,14 +47,31 @@ export function convertHysteriaToUrl(proxy) {
             params.set('alpn', alpn);
         }
 
-        // 混淆配置
+        // Fingerprint
+        if (proxy.fingerprint || proxy['client-fingerprint']) {
+            params.set('pinSHA256', proxy.fingerprint || proxy['client-fingerprint']);
+        }
+
+        // Hysteria2 特有参数
         if (isHysteria2) {
-            // Hysteria2 混淆
+            // 混淆
             if (proxy.obfs) {
                 params.set('obfs', proxy.obfs);
             }
+            // ✅ 混淆密码解码
             if (proxy['obfs-password']) {
-                params.set('obfs-password', proxy['obfs-password']);
+                const obfsPassword = typeof proxy['obfs-password'] === 'string' && proxy['obfs-password'].includes('%')
+                    ? decodeURIComponent(proxy['obfs-password'])
+                    : proxy['obfs-password'];
+                params.set('obfs-password', obfsPassword);
+            }
+
+            // 上传/下载速度
+            if (proxy.up) {
+                params.set('up', proxy.up);
+            }
+            if (proxy.down) {
+                params.set('down', proxy.down);
             }
         } else {
             // Hysteria1 混淆
@@ -83,32 +85,32 @@ export function convertHysteriaToUrl(proxy) {
                     }
                 }
             }
+
+            // Hysteria1 上传/下载
+            if (proxy.up) {
+                params.set('upmbps', proxy.up);
+            }
+            if (proxy.down) {
+                params.set('downmbps', proxy.down);
+            }
+
+            // Hysteria1 auth_str
+            if (proxy['auth_str'] || proxy['auth-str']) {
+                params.set('auth', proxy['auth_str'] || proxy['auth-str']);
+            }
         }
 
-        // 跳过证书验证
-        if (proxy['skip-cert-verify'] !== undefined) {
-            params.set('insecure', proxy['skip-cert-verify'] ? '1' : '0');
+        // 协议参数
+        if (proxy.protocol) {
+            params.set('protocol', proxy.protocol);
         }
 
-        // 快速打开
-        if (proxy['fast-open'] !== undefined) {
-            params.set('fastopen', proxy['fast-open'] ? '1' : '0');
-        }
-
-        // Lazy 模式 (Hysteria2)
-        if (isHysteria2 && proxy.lazy !== undefined) {
-            params.set('lazy', proxy.lazy ? '1' : '0');
-        }
-
-        // 添加参数
-        const paramsStr = params.toString();
-        if (paramsStr) {
-            url += `?${paramsStr}`;
-        }
+        // 构建 URL
+        const url = `${protocol}://${encodeURIComponent(decodedAuth)}@${proxy.server}:${portStr}?${params.toString()}`;
 
         // Fragment (节点名称)
         if (proxy.name) {
-            url += `#${encodeURIComponent(proxy.name)}`;
+            return `${url}#${encodeURIComponent(proxy.name)}`;
         }
 
         return url;
