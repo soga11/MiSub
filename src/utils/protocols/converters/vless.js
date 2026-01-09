@@ -143,10 +143,13 @@ export function convertVlessToUrl(proxy) {
                 params.set('fp', proxy['client-fingerprint'] || proxy.fingerprint);
             }
 
-            // ALPN
+            // ✅ ALPN（解码 URL 编码）
             if (proxy.alpn) {
-                const alpn = Array.isArray(proxy.alpn) ? proxy.alpn.join(',') : proxy.alpn;
-                params.set('alpn', alpn);
+                const alpnArray = Array.isArray(proxy.alpn) ? proxy.alpn : [proxy.alpn];
+                const alpnDecoded = alpnArray.map(a => 
+                    typeof a === 'string' && a.includes('%') ? decodeURIComponent(a) : a
+                ).join(',');
+                params.set('alpn', alpnDecoded);
             }
 
             // 跳过证书验证
