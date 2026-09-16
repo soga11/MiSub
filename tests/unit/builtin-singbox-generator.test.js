@@ -41,13 +41,15 @@ describe('Built-in Sing-box generator', () => {
 
         const youtubeGroup = parsed.outbounds.find((outbound) => outbound.tag === '📹 油管视频');
         expect(youtubeGroup?.outbounds).toEqual(
-            expect.arrayContaining(['👋 手动选择', '♻️ 自动选择', '🚀 节点选择'])
+            expect.arrayContaining(['🛡️ 去广告', '👋 手动选择', '♻️ 自动选择', '🚀 节点选择'])
         );
+        expect(youtubeGroup?.outbounds?.[0]).toBe('🛡️ 去广告');
 
         const chatgptGroup = parsed.outbounds.find((outbound) => outbound.tag === '💬 ChatGPT');
         expect(chatgptGroup?.outbounds).toEqual(
-            expect.arrayContaining(['👋 手动选择', '♻️ 自动选择', '🚀 节点选择'])
+            expect.arrayContaining(['🇨🇳 台湾负载', '👋 手动选择', '♻️ 自动选择', '🚀 节点选择'])
         );
+        expect(chatgptGroup?.outbounds?.[0]).toBe('🇨🇳 台湾负载');
     });
 
     it('should include a tun inbound for sing-box Android client deployment', () => {
