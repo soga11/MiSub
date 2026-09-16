@@ -52,8 +52,7 @@
       "type": "redirect",
       "tag": "redirect-in",
       "listen": "::",
-      "listen_port": 6054,
-      "network": "tcp"
+      "listen_port": 6054
     },
     {
       "type": "tproxy",
