@@ -1,4 +1,6 @@
 const MAIN_GROUP = '🚀 节点选择';
+const MANUAL_GROUP = '👋 手动选择';
+const AUTO_GROUP = '♻️ 自动选择';
 const YOUTUBE_GROUP = '📹 油管视频';
 const CHATGPT_GROUP = '💬 ChatGPT';
 const TIKTOK_GROUP = '🎵 TikTok';
@@ -195,9 +197,11 @@ export function buildModernSingboxConfig(proxyOutbounds) {
             },
         ],
         outbounds: [
-            selector(MAIN_GROUP, [HK_GROUP, TW_GROUP, ADS_GROUP, 'DIRECT']),
-            selector(YOUTUBE_GROUP, [ADS_GROUP, TW_GROUP, HK_GROUP, MAIN_GROUP, 'DIRECT']),
-            selector(CHATGPT_GROUP, [TW_GROUP, HK_GROUP, MAIN_GROUP, 'DIRECT']),
+            selector(MAIN_GROUP, [AUTO_GROUP, MANUAL_GROUP, HK_GROUP, TW_GROUP, ADS_GROUP, 'DIRECT']),
+            selector(MANUAL_GROUP, selectableTags),
+            urltest(AUTO_GROUP, selectableTags),
+            selector(YOUTUBE_GROUP, [MANUAL_GROUP, AUTO_GROUP, ADS_GROUP, TW_GROUP, HK_GROUP, MAIN_GROUP, 'DIRECT']),
+            selector(CHATGPT_GROUP, [MANUAL_GROUP, AUTO_GROUP, TW_GROUP, HK_GROUP, MAIN_GROUP, 'DIRECT']),
             selector(TIKTOK_GROUP, [TW_GROUP, HK_GROUP, MAIN_GROUP]),
             selector(TELEGRAM_GROUP, [HK_GROUP, ADS_GROUP, MAIN_GROUP]),
             selector(APPLE_GROUP, ['DIRECT', MAIN_GROUP]),

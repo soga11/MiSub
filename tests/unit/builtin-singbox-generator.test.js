@@ -18,12 +18,36 @@ describe('Built-in Sing-box generator', () => {
         expect(parsed.outbounds.some((outbound) => outbound.tag === '🚀 节点选择')).toBe(true);
         expect(parsed.outbounds.some((outbound) => outbound.tag === '📹 油管视频')).toBe(true);
         expect(parsed.outbounds.some((outbound) => outbound.tag === '🍎 苹果服务')).toBe(true);
+        expect(parsed.outbounds.some((outbound) => outbound.tag === '💬 ChatGPT')).toBe(true);
         expect(
             parsed.outbounds.some(
                 (outbound) => outbound.tag === '🇭🇰 香港负载' && outbound.type === 'urltest'
             )
         ).toBe(true);
         expect(parsed.route.final).toBe('🐟 漏网之鱼');
+
+        const mainGroup = parsed.outbounds.find((outbound) => outbound.tag === '🚀 节点选择');
+        expect(mainGroup?.outbounds).toEqual(
+            expect.arrayContaining(['♻️ 自动选择', '👋 手动选择', '🇭🇰 香港负载', '🇨🇳 台湾负载'])
+        );
+
+        const manualGroup = parsed.outbounds.find((outbound) => outbound.tag === '👋 手动选择');
+        expect(manualGroup?.type).toBe('selector');
+        expect(manualGroup?.outbounds?.length).toBeGreaterThan(0);
+
+        const autoGroup = parsed.outbounds.find((outbound) => outbound.tag === '♻️ 自动选择');
+        expect(autoGroup?.type).toBe('urltest');
+        expect(autoGroup?.outbounds?.length).toBeGreaterThan(0);
+
+        const youtubeGroup = parsed.outbounds.find((outbound) => outbound.tag === '📹 油管视频');
+        expect(youtubeGroup?.outbounds).toEqual(
+            expect.arrayContaining(['👋 手动选择', '♻️ 自动选择', '🚀 节点选择'])
+        );
+
+        const chatgptGroup = parsed.outbounds.find((outbound) => outbound.tag === '💬 ChatGPT');
+        expect(chatgptGroup?.outbounds).toEqual(
+            expect.arrayContaining(['👋 手动选择', '♻️ 自动选择', '🚀 节点选择'])
+        );
     });
 
     it('should include a tun inbound for sing-box Android client deployment', () => {
