@@ -88,6 +88,7 @@ export function isSingboxJsonTemplate(templateText) {
  * - 未写 filter 时：分组名含 香港/HK、台湾/TW、去广告 会按名称启发式过滤
  * - 其余空分组（手动选择/自动选择等）填入全部节点
  * - filter/exclude 为引擎扩展字段，输出 JSON 时会剔除
+ * - 显式 filter 无匹配时回退全部节点，避免生成无法加载的空 urltest/selector
  * - 节点 outbound 追加到 outbounds 末尾；缺失 DIRECT/REJECT 时自动补齐
  */
 function matchesAnyPattern(text, pattern) {
@@ -161,12 +162,8 @@ export function renderSingboxFromJsonTemplate(templateText, options = {}) {
         const needsFill = members.length === 0 || members.includes('*');
         if (!needsFill) return stripEngineOnlyFields(outbound);
         const picked = pickNodesForGroup(outbound, nodeOutbounds);
-        // 有 filter 且无匹配时保持空，避免把全部节点误塞进去；无 filter 时退回全部
-        const hasExplicitFilter =
-            (outbound.filter != null && outbound.filter !== '') ||
-            (outbound.include != null && outbound.include !== '');
-        const fillNodes =
-            picked.length > 0 ? picked : hasExplicitFilter ? [] : nodeOutbounds;
+        // 节点改名或过滤表达式暂时无匹配时，回退全部节点，避免空组令配置失效。
+        const fillNodes = picked.length > 0 ? picked : nodeOutbounds;
         const fillTags = fillNodes.map((o) => o.tag);
         const kept = members.filter((tag) => tag && tag !== '*' && !nodeTagSet.has(tag));
         return stripEngineOnlyFields({

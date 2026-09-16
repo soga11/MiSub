@@ -1023,4 +1023,23 @@ custom_proxy_group=🤖 AI 服务\`select\`[]🚀 节点选择\`[]DIRECT
         expect(ads.outbounds[0]).toContain('去广告');
         expect(manual.outbounds.length).toBe(4);
     });
+    it('falls back to all nodes when a custom group filter has no matches', () => {
+        const template = {
+            outbounds: [
+                { tag: '🇭🇰 香港负载', type: 'urltest', outbounds: [], filter: '电视' },
+            ],
+        };
+        const rendered = renderSingboxFromJsonTemplate(JSON.stringify(template), {
+            nodeList: [
+                'trojan://p@1.1.1.1:443#节点-01',
+                'trojan://p@2.2.2.2:443#节点-02',
+                'trojan://p@3.3.3.3:443#节点-03',
+            ].join('\n'),
+        });
+        const parsed = JSON.parse(rendered);
+        const group = parsed.outbounds.find((outbound) => outbound.tag === '🇭🇰 香港负载');
+
+        expect(group.outbounds).toHaveLength(3);
+        expect(group.filter).toBeUndefined();
+    });
 });
