@@ -157,11 +157,21 @@ describe('Builtin template rule audit', () => {
             expect(clashIndex, `${domain} should route to the AI group`).toBeGreaterThanOrEqual(0);
             expect(clashIndex).toBeLessThan(geoipIndex);
             expect(clashIndex).toBeLessThan(finalIndex);
-            expect(singbox.route.rules).toContainEqual({
-                domain_suffix: [domain],
-                outbound: '🤖 AI 服务',
-            });
         }
+        const chatgptRule = singbox.route.rules.find((rule) => rule.outbound === '💬 ChatGPT');
+        expect(chatgptRule?.domain_suffix).toEqual(
+            expect.arrayContaining([
+                '.openai.com',
+                '.chatgpt.com',
+                '.anthropic.com',
+                '.claude.ai',
+                '.gemini.google.com',
+                '.copilot.microsoft.com',
+                '.perplexity.ai',
+                '.deepseek.com',
+                '.moonshot.cn',
+            ])
+        );
     });
 
     it('uses maintained SagerNet sing-box binary rule sets instead of deprecated Loyalsoldier JSON rules', () => {
@@ -188,13 +198,14 @@ describe('Builtin template rule audit', () => {
                 ruleLevel: 'std',
             })
         );
-        const adsRuleSet = parsed.route.rule_set.find((ruleSet) => ruleSet.tag === 'ADS');
+        const adsRuleSet = parsed.route.rule_set.find(
+            (ruleSet) => ruleSet.tag === 'geosite-category-ads-all'
+        );
 
         expect(adsRuleSet).toMatchObject({
             type: 'remote',
             format: 'binary',
-            url: REMOTE_SOURCES.ADS.singbox,
-            download_detour: DNS_PROXY_GROUP,
+            url: 'https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs',
         });
     });
 
@@ -211,10 +222,29 @@ describe('Builtin template rule audit', () => {
             type: 'tun',
             auto_route: true,
             strict_route: true,
+            mtu: 9000,
         });
-        expect(singbox.dns.final).toBe('dns-foreign-1');
-        expect(
-            singbox.outbounds.find((outbound) => outbound.tag === '🌐 DNS 出口')?.outbounds
-        ).not.toContain('DIRECT');
+        expect(singbox.inbounds[0].stack).toBeUndefined();
+        expect(singbox.inbounds).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ type: 'mixed', listen: '127.0.0.1', listen_port: 2334 }),
+            ])
+        );
+        expect(singbox.dns.final).toBe('remote');
+        expect(singbox.dns.servers).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    tag: 'remote',
+                    type: 'https',
+                    server: '8.8.8.8',
+                    detour: '🚀 节点选择',
+                }),
+                expect.objectContaining({ tag: 'local', type: 'https', server: '223.5.5.5' }),
+                expect.objectContaining({ tag: 'fakeip', type: 'fakeip' }),
+            ])
+        );
+        expect(singbox.outbounds.find((outbound) => outbound.tag === '💬 ChatGPT')?.type).toBe(
+            'selector'
+        );
     });
 });

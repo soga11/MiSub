@@ -16,6 +16,7 @@ import {
     pruneProxyGroups,
 } from './builtin-rules-provider.js';
 import { buildSingboxDnsConfig, DNS_PROXY_GROUP, SINGBOX_CN_RULE_SET } from './safe-dns.js';
+import { buildModernSingboxConfig } from './modern-singbox-config.js';
 
 function cleanControlChars(str) {
     if (typeof str !== 'string') return str;
@@ -293,121 +294,11 @@ export function generateBuiltinSingboxConfig(nodeList, options = {}) {
         }
     }
 
-    const proxyOutboundTags = outbounds.map((item) => item.tag);
     if (outbounds.length === 0) {
         outbounds.push({ tag: 'DIRECT', type: 'direct' });
     }
 
-    const levelKey = (ruleLevel || 'std').toUpperCase();
-    // 获取内置策略组
-    const policyGroupsFactory = POLICY_GROUPS[levelKey] || POLICY_GROUPS.STD;
-    let proxyGroups = policyGroupsFactory(outbounds, options);
-    proxyGroups = pruneProxyGroups(proxyGroups, outbounds);
-
-    if (levelKey === 'RELAY') {
-        const chainOutbounds = nodeEntries.map(({ tag, outbound }) => ({
-            ...outbound,
-            tag: `🔗 链式代理 - ${tag}`,
-            detour: '入口节点',
-        }));
-        const chainTags = chainOutbounds.map((outbound) => outbound.tag);
-        outbounds.push(...chainOutbounds);
-        proxyGroups = proxyGroups
-            .map((group) => {
-                if (group.name === '🔗 链式代理') {
-                    return {
-                        ...group,
-                        // Sing-box 通过 detour 表达链式出站。保持上一版可用结构：
-                        // “链式代理”直接选择带 detour 的落地副本；同时隐藏“落地节点”分组。
-                        type: 'select',
-                        proxies: chainTags,
-                    };
-                }
-                if (group.name === '落地节点') {
-                    return null;
-                }
-                return group;
-            })
-            .filter(Boolean);
-        proxyGroups = pruneProxyGroups(proxyGroups, outbounds);
-    }
-
-    // 将抽象分组转换为 Sing-Box Outbounds
-    const groupOutbounds = proxyGroups.map((group) => {
-        let type = 'selector';
-        if (group.type === 'url-test') type = 'urltest';
-        if (group.type === 'fallback') type = 'urltest'; // Sing-Box 暂时映射为 urltest
-
-        return {
-            tag: group.name,
-            type: type,
-            outbounds: group.proxies,
-            ...(type === 'urltest'
-                ? {
-                      url: 'http://www.gstatic.com/generate_204',
-                      interval: '10m',
-                      tolerance: 50,
-                  }
-                : {}),
-        };
-    });
-
-    // 从统一规则库获取分流规则
-    const rawRules = getBuiltinRules(levelKey, 'singbox');
-
-    // 提取远程 Rule Set 定义 (Sing-Box 格式)
-    const ruleSetsMap = getRemoteProviderDefinitions('singbox', rawRules);
-    const ruleSets = [
-        getSingboxDnsRuleSet(),
-        ...Object.values(ruleSetsMap).filter((ruleSet) => ruleSet.tag !== SINGBOX_CN_RULE_SET),
-    ];
-
-    // 转换路由规则：将中间对象映射为 Sing-Box 语法
-    const routeRules = [
-        {
-            ip_cidr: ['127.0.0.0/8', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
-            outbound: 'DIRECT',
-        },
-        { domain_suffix: ['localhost'], outbound: 'DIRECT' },
-        ...rawRules.map((r) => {
-            if (r.type === 'rule_set') return { rule_set: [r.tag], outbound: r.outbound };
-            return r; // 已经是 Sing-Box 格式的普通规则
-        }),
-        { domain_suffix: ['cn'], outbound: 'DIRECT' },
-    ];
-
-    const dnsConfig = buildSingboxDnsConfig(options.customDnsOverride || '', {
-        mode: options.dnsMode,
-        proxyGroup: DNS_PROXY_GROUP,
-    });
-
-    const config = {
-        log: { level: 'info' },
-        dns: dnsConfig,
-        inbounds: [
-            {
-                type: 'tun',
-                tag: 'tun-in',
-                address: ['172.19.0.1/30'],
-                auto_route: true,
-                strict_route: true,
-                stack: 'mixed',
-            },
-        ],
-        outbounds: [
-            { tag: 'DIRECT', type: 'direct' },
-            { tag: 'REJECT', type: 'block' },
-            ...outbounds,
-            ...groupOutbounds,
-        ],
-        route: {
-            auto_detect_interface: true,
-            default_domain_resolver: dnsConfig.servers[0]?.tag || 'dns-cn-1',
-            final: levelKey === 'RELAY' ? DEFAULT_RELAY_GROUP : DEFAULT_SELECT_GROUP,
-            rule_set: ruleSets,
-            rules: routeRules,
-        },
-    };
+    const config = buildModernSingboxConfig(outbounds);
 
     return JSON.stringify(config, null, 2) + '\n';
 }

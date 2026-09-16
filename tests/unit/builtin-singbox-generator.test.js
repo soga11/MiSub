@@ -15,15 +15,15 @@ describe('Built-in Sing-box generator', () => {
 
         expect(Array.isArray(parsed.outbounds)).toBe(true);
         expect(parsed.outbounds.some((outbound) => outbound.tag.endsWith('TestNode'))).toBe(true);
-        expect(parsed.outbounds.some((outbound) => outbound.tag.includes('节点选择'))).toBe(true);
-        expect(parsed.outbounds.some((outbound) => outbound.tag.includes('视频广告'))).toBe(true);
-        expect(parsed.outbounds.some((outbound) => outbound.tag.includes('Apple'))).toBe(true);
+        expect(parsed.outbounds.some((outbound) => outbound.tag === '🚀 节点选择')).toBe(true);
+        expect(parsed.outbounds.some((outbound) => outbound.tag === '📹 油管视频')).toBe(true);
+        expect(parsed.outbounds.some((outbound) => outbound.tag === '🍎 苹果服务')).toBe(true);
         expect(
             parsed.outbounds.some(
-                (outbound) => outbound.tag.includes('日本') && outbound.type === 'urltest'
+                (outbound) => outbound.tag === '🇭🇰 香港负载' && outbound.type === 'urltest'
             )
         ).toBe(true);
-        expect(parsed.route.final).toContain('节点选择');
+        expect(parsed.route.final).toBe('🐟 漏网之鱼');
     });
 
     it('should include a tun inbound for sing-box Android client deployment', () => {
@@ -36,23 +36,30 @@ describe('Built-in Sing-box generator', () => {
                 tag: 'tun-in',
                 auto_route: true,
                 strict_route: true,
-                stack: 'mixed',
+            }),
+            expect.objectContaining({
+                type: 'mixed',
+                tag: 'mixed-in',
+                listen: '127.0.0.1',
+                listen_port: 2334,
             }),
         ]);
-        expect(parsed.inbounds[0].address).toEqual(expect.arrayContaining(['172.19.0.1/30']));
+        expect(parsed.inbounds[0].stack).toBeUndefined();
+        expect(parsed.inbounds[0].address).toEqual(
+            expect.arrayContaining(['172.19.0.1/30', 'fdfe:dcba:9876::1/126'])
+        );
         expect(parsed.route.auto_detect_interface).toBe(true);
-        expect(parsed.route.default_domain_resolver).toBe('dns-cn-1');
+        expect(parsed.route.default_domain_resolver).toEqual({ server: 'local' });
         expect(parsed.dns.rules).toEqual(
             expect.arrayContaining([
-                expect.objectContaining({ action: 'route', server: 'dns-cn-1' }),
+                expect.objectContaining({ query_type: ['A', 'AAAA'], server: 'fakeip' }),
             ])
         );
         expect(parsed.dns.rules).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
-                    rule_set: ['geosite-cn'],
-                    action: 'route',
-                    server: 'dns-cn-1',
+                    rule_set: 'geosite-cn',
+                    server: 'local',
                 }),
             ])
         );
@@ -61,9 +68,9 @@ describe('Built-in Sing-box generator', () => {
                 expect.objectContaining({ tag: 'geosite-cn', type: 'remote', format: 'binary' }),
             ])
         );
-        expect(
-            parsed.outbounds.find((outbound) => outbound.tag === '🌐 DNS 出口')?.outbounds
-        ).not.toContain('DIRECT');
+        expect(parsed.dns.servers.find((server) => server.tag === 'remote')?.detour).toBe(
+            '🚀 节点选择'
+        );
     });
 
     it('should enable TLS for https and socks5-tls', () => {
@@ -91,8 +98,14 @@ describe('Built-in Sing-box generator', () => {
 
         expect(parsed.dns.servers).toEqual(
             expect.arrayContaining([
-                expect.objectContaining({ type: 'udp', server: '223.5.5.5', server_port: 53 }),
-                expect.objectContaining({ type: 'udp', server: '8.8.8.8', detour: '🌐 DNS 出口' }),
+                expect.objectContaining({ tag: 'local', type: 'https', server: '223.5.5.5' }),
+                expect.objectContaining({
+                    tag: 'remote',
+                    type: 'https',
+                    server: '8.8.8.8',
+                    detour: '🚀 节点选择',
+                }),
+                expect.objectContaining({ tag: 'fakeip', type: 'fakeip' }),
             ])
         );
         expect(parsed.dns.servers.every((server) => !Object.hasOwn(server, 'address'))).toBe(true);
@@ -104,7 +117,7 @@ describe('Built-in Sing-box generator', () => {
         expect(trojanNode?.transport?.headers?.Host).toBe('example.com');
     });
 
-    it('enables encrypted foreign DNS only in polluted mode', () => {
+    it('uses the modern remote/local/fakeip DNS baseline', () => {
         const parsed = JSON.parse(
             generateBuiltinSingboxConfig('trojan://password@1.2.3.4:443#Trojan', {
                 dnsMode: 'polluted',
@@ -113,15 +126,21 @@ describe('Built-in Sing-box generator', () => {
         expect(parsed.dns.servers).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
+                    tag: 'remote',
                     type: 'https',
                     server: '8.8.8.8',
-                    path: '/dns-query',
-                    detour: '🌐 DNS 出口',
+                    detour: '🚀 节点选择',
                 }),
+                expect.objectContaining({ tag: 'local', type: 'https', server: '223.5.5.5' }),
+                expect.objectContaining({ tag: 'fakeip', type: 'fakeip' }),
             ])
         );
-        expect(parsed.dns.final).toBe('dns-foreign-1');
-        expect(parsed.dns.rules[0].rule_set).toEqual(['geosite-cn']);
+        expect(parsed.dns.final).toBe('remote');
+        expect(parsed.dns.rules[0]).toEqual({
+            query_type: ['A', 'AAAA'],
+            rewrite_ttl: 1,
+            server: 'fakeip',
+        });
     });
 
     it('should map anytls outbound', () => {
@@ -180,9 +199,7 @@ describe('Built-in Sing-box generator', () => {
         expect(geoipRules).toHaveLength(0);
 
         // Should have a geoip-cn rule_set reference instead
-        const geoipRuleSet = parsed.route.rules.filter(
-            (r) => Array.isArray(r.rule_set) && r.rule_set.includes('geoip-cn')
-        );
+        const geoipRuleSet = parsed.route.rules.filter((r) => r.rule_set === 'geoip-cn');
         expect(geoipRuleSet).toHaveLength(1);
         expect(geoipRuleSet[0].outbound).toBe('DIRECT');
 

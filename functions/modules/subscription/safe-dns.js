@@ -263,7 +263,8 @@ function parseSingboxResolver(value, tag, detour) {
     const type = parsed.protocol.slice(0, -1);
     const server = parsed.hostname.replace(/^\[|\]$/g, '');
     const serverPort = Number(parsed.port) || (type === 'https' ? 443 : type === 'tls' ? 853 : 53);
-    const result = { tag, type, server, server_port: serverPort, detour };
+    const result = { tag, type, server, server_port: serverPort };
+    if (detour && detour !== 'DIRECT') result.detour = detour;
     if (type === 'https') result.path = parsed.pathname || '/dns-query';
     if (type === 'tls') result.tls = { enabled: true, server_name: server };
     return result;

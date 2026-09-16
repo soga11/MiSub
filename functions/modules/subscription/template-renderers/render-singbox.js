@@ -2,6 +2,7 @@ import { urlsToClashProxies } from '../../../utils/url-to-clash.js';
 import { normalizeUnifiedTemplateModel } from '../template-model.js';
 import { buildSingboxDnsConfig, DNS_PROXY_GROUP, SINGBOX_CN_RULE_SET } from '../safe-dns.js';
 import { getSingboxDnsRuleSet, pinRemoteRuleUrl } from '../builtin-rules-provider.js';
+import { buildModernSingboxConfig } from '../modern-singbox-config.js';
 
 function sanitizeTag(value) {
     return String(value || '').trim() || 'Untitled';
@@ -380,50 +381,7 @@ export function renderSingboxFromTemplateModel(model, options = {}) {
             ? normalizedModel.proxies
             : urlsToClashProxies(proxyUrls);
     const proxyOutbounds = proxies.map(buildOutbound).filter(Boolean);
-    const groupOutbounds = buildGroupOutbounds(
-        normalizedModel.groups.filter((g) => Array.isArray(g.members) && g.members.length > 0)
-    );
-    const ruleSetObjects = [
-        getSingboxDnsRuleSet(),
-        ...buildRuleSets(normalizedModel.rules).filter(
-            (ruleSet) => ruleSet.tag !== SINGBOX_CN_RULE_SET
-        ),
-    ];
-    const routeRules = normalizedModel.rules.map(mapRuleToSingbox).filter(Boolean);
-    const defaultOutbound =
-        normalizedModel.groups.find((group) => group.name !== DNS_PROXY_GROUP)?.name || 'DIRECT';
-    const dnsConfig = buildSingboxDnsConfig(normalizedModel.settings?.customDnsOverride, {
-        mode: normalizedModel.settings?.dnsMode,
-        proxyGroup: DNS_PROXY_GROUP,
-    });
-
-    const config = {
-        log: { level: 'info' },
-        dns: dnsConfig,
-        inbounds: [
-            {
-                type: 'tun',
-                tag: 'tun-in',
-                address: ['172.19.0.1/30'],
-                auto_route: true,
-                strict_route: true,
-                stack: 'mixed',
-            },
-        ],
-        outbounds: [
-            { tag: 'DIRECT', type: 'direct' },
-            { tag: 'REJECT', type: 'block' },
-            ...proxyOutbounds,
-            ...groupOutbounds,
-        ],
-        route: {
-            auto_detect_interface: true,
-            default_domain_resolver: dnsConfig.servers[0]?.tag || 'dns-cn-1',
-            final: defaultOutbound,
-            rule_set: ruleSetObjects,
-            rules: routeRules,
-        },
-    };
+    const config = buildModernSingboxConfig(proxyOutbounds);
 
     return JSON.stringify(config, null, 2) + '\n';
 }
