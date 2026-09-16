@@ -13,7 +13,7 @@ function parsePort(port) {
     return Number.isFinite(num) ? num : undefined;
 }
 
-function buildOutbound(proxy) {
+export function buildOutbound(proxy) {
     if (!proxy || !proxy.server || !proxy.port) return null;
 
     const type = String(proxy.type || '').toLowerCase();

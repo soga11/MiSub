@@ -1,7 +1,10 @@
 import { parseIniTemplate } from './template-parsers/ini-template-parser.js';
 import { applySmartModelOptimizations } from './template-processor.js';
 import { renderClashFromTemplateModel } from './template-renderers/render-clash.js';
-import { renderSingboxFromTemplateModel } from './template-renderers/render-singbox.js';
+import {
+    renderSingboxFromTemplateModel,
+    buildOutbound as buildSingboxOutbound,
+} from './template-renderers/render-singbox.js';
 import { renderSurgeFromTemplateModel } from './template-renderers/render-surge.js';
 import { renderLoonFromTemplateModel } from './template-renderers/render-loon.js';
 import { renderQuanxFromTemplateModel } from './template-renderers/render-quanx.js';
@@ -62,6 +65,74 @@ export function renderSingboxFromIniTemplate(templateText, options = {}) {
     });
     model = applySmartModelOptimizations(model);
     return renderSingboxFromTemplateModel(model, options);
+}
+
+export function isSingboxJsonTemplate(templateText) {
+    if (typeof templateText !== 'string') return false;
+    const trimmed = templateText.trim();
+    if (!trimmed.startsWith('{')) return false;
+    try {
+        const parsed = JSON.parse(trimmed);
+        return Boolean(parsed && typeof parsed === 'object' && Array.isArray(parsed.outbounds));
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * 使用用户提供的 sing-box JSON 骨架，注入真实节点。
+ * 约定：
+ * - selector/urltest 的 outbounds 为 [] 或含 "*" 时，自动填入全部节点 tag
+ * - 其余分组引用（如 "🚀 节点选择"、"DIRECT"）原样保留
+ * - 节点 outbound 追加到 outbounds 末尾；缺失 DIRECT/REJECT 时自动补齐
+ */
+export function renderSingboxFromJsonTemplate(templateText, options = {}) {
+    const template = JSON.parse(templateText);
+    if (!template || typeof template !== 'object' || Array.isArray(template)) {
+        throw new Error('Sing-box JSON template must be an object');
+    }
+
+    const nodeList = typeof options.nodeList === 'string' ? options.nodeList : '';
+    const proxyUrls = nodeList
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith('#'));
+    const proxies = Array.isArray(options.proxies)
+        ? options.proxies
+        : urlsToClashProxies(proxyUrls, options);
+    deduplicateNames(proxies);
+
+    const nodeOutbounds = proxies.map(buildSingboxOutbound).filter(Boolean);
+    const nodeTags = nodeOutbounds.map((outbound) => outbound.tag);
+    const nodeTagSet = new Set(nodeTags);
+
+    const existingOutbounds = Array.isArray(template.outbounds) ? template.outbounds : [];
+    const filledOutbounds = existingOutbounds.map((outbound) => {
+        if (!outbound || (outbound.type !== 'selector' && outbound.type !== 'urltest')) {
+            return outbound;
+        }
+        const members = Array.isArray(outbound.outbounds) ? outbound.outbounds : [];
+        const needsFill = members.length === 0 || members.includes('*');
+        if (!needsFill) return outbound;
+        const kept = members.filter((tag) => tag && tag !== '*' && !nodeTagSet.has(tag));
+        return { ...outbound, outbounds: [...kept, ...nodeTags] };
+    });
+
+    const existingTags = new Set(
+        existingOutbounds.map((outbound) => outbound?.tag).filter(Boolean)
+    );
+    const appendedNodes = nodeOutbounds.filter((outbound) => !existingTags.has(outbound.tag));
+
+    const resultOutbounds = [...filledOutbounds, ...appendedNodes];
+    const resultTags = new Set(resultOutbounds.map((outbound) => outbound?.tag).filter(Boolean));
+    if (!resultTags.has('DIRECT')) {
+        resultOutbounds.push({ tag: 'DIRECT', type: 'direct' });
+    }
+    if (!resultTags.has('REJECT')) {
+        resultOutbounds.push({ tag: 'REJECT', type: 'block' });
+    }
+
+    return JSON.stringify({ ...template, outbounds: resultOutbounds }, null, 2) + '\n';
 }
 
 export function renderSurgeFromIniTemplate(templateText, options = {}) {

@@ -6,6 +6,8 @@ import {
     renderLoonFromIniTemplate,
     renderQuanxFromIniTemplate,
     renderSingboxFromIniTemplate,
+    renderSingboxFromJsonTemplate,
+    isSingboxJsonTemplate,
     renderSurgeFromIniTemplate,
 } from '../../functions/modules/subscription/template-pipeline.js';
 import { getBuiltinTemplate } from '../../functions/modules/subscription/builtin-template-registry.js';
@@ -900,5 +902,69 @@ custom_proxy_group=🤖 AI 服务\`select\`[]🚀 节点选择\`[]DIRECT
             path: './ruleset/ai_0.list',
         });
         expect(parsed.rules).toContain('RULE-SET,ai_0,🤖 AI 服务');
+    });
+
+    it('detects sing-box JSON templates', () => {
+        expect(isSingboxJsonTemplate('{"outbounds":[{"tag":"DIRECT","type":"direct"}]}')).toBe(
+            true
+        );
+        expect(isSingboxJsonTemplate('not json')).toBe(false);
+        expect(isSingboxJsonTemplate('{"rules":["MATCH,DIRECT"]}')).toBe(false);
+        expect(isSingboxJsonTemplate('[1,2,3]')).toBe(false);
+    });
+
+    it('renders sing-box from raw JSON template and injects nodes into empty groups', () => {
+        const template = {
+            log: { level: 'info' },
+            dns: { servers: [{ tag: 'local', address: '223.5.5.5' }] },
+            inbounds: [{ type: 'tun', tag: 'tun-in', auto_route: true }],
+            outbounds: [
+                {
+                    tag: '🚀 节点选择',
+                    type: 'selector',
+                    outbounds: ['♻️ 自动选择', 'DIRECT'],
+                },
+                {
+                    tag: '♻️ 自动选择',
+                    type: 'urltest',
+                    outbounds: [],
+                    url: 'http://cp.cloudflare.com/generate_204',
+                },
+                {
+                    tag: '👋 手动选择',
+                    type: 'selector',
+                    outbounds: ['*'],
+                },
+            ],
+            route: { final: '🚀 节点选择' },
+        };
+
+        const rendered = renderSingboxFromJsonTemplate(JSON.stringify(template), {
+            nodeList: [
+                'trojan://password@1.2.3.4:443#HK-01',
+                'trojan://password@5.6.7.8:443#TW-01',
+            ].join('\n'),
+        });
+        const parsed = JSON.parse(rendered);
+        const nodeTags = parsed.outbounds
+            .filter((o) => o.type === 'trojan' || o.type === 'shadowsocks' || o.type === 'vmess')
+            .map((o) => o.tag);
+
+        expect(parsed.log.level).toBe('info');
+        expect(parsed.route.final).toBe('🚀 节点选择');
+        expect(nodeTags.length).toBe(2);
+        expect(nodeTags.some((tag) => tag.includes('HK-01'))).toBe(true);
+        expect(nodeTags.some((tag) => tag.includes('TW-01'))).toBe(true);
+        expect(parsed.outbounds.some((o) => o.tag === 'DIRECT')).toBe(true);
+        expect(parsed.outbounds.some((o) => o.tag === 'REJECT')).toBe(true);
+
+        const autoGroup = parsed.outbounds.find((o) => o.tag === '♻️ 自动选择');
+        expect(autoGroup.outbounds).toEqual(expect.arrayContaining(nodeTags));
+
+        const manualGroup = parsed.outbounds.find((o) => o.tag === '👋 手动选择');
+        expect(manualGroup.outbounds).toEqual(expect.arrayContaining(nodeTags));
+
+        const mainGroup = parsed.outbounds.find((o) => o.tag === '🚀 节点选择');
+        expect(mainGroup.outbounds).toEqual(['♻️ 自动选择', 'DIRECT']);
     });
 });
