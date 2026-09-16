@@ -967,4 +967,31 @@ custom_proxy_group=🤖 AI 服务\`select\`[]🚀 节点选择\`[]DIRECT
         const mainGroup = parsed.outbounds.find((o) => o.tag === '🚀 节点选择');
         expect(mainGroup.outbounds).toEqual(['♻️ 自动选择', 'DIRECT']);
     });
+
+    it('filters region groups when filling empty JSON template outbounds', () => {
+        const template = {
+            outbounds: [
+                { tag: '👋 手动选择', type: 'selector', outbounds: [] },
+                { tag: '🇭🇰 香港负载', type: 'urltest', outbounds: [] },
+                { tag: '🇨🇳 台湾负载', type: 'urltest', outbounds: [] },
+            ],
+        };
+        const rendered = renderSingboxFromJsonTemplate(JSON.stringify(template), {
+            nodeList: [
+                'trojan://password@1.2.3.4:443#香港-HK1',
+                'trojan://password@5.6.7.8:443#台湾-TW1',
+                'trojan://password@9.9.9.9:443#日本-JP1',
+            ].join('\n'),
+        });
+        const parsed = JSON.parse(rendered);
+        const manual = parsed.outbounds.find((o) => o.tag === '👋 手动选择');
+        const hk = parsed.outbounds.find((o) => o.tag === '🇭🇰 香港负载');
+        const tw = parsed.outbounds.find((o) => o.tag === '🇨🇳 台湾负载');
+
+        expect(manual.outbounds.length).toBe(3);
+        expect(hk.outbounds.length).toBe(1);
+        expect(hk.outbounds[0]).toContain('香港');
+        expect(tw.outbounds.length).toBe(1);
+        expect(tw.outbounds[0]).toContain('台湾');
+    });
 });

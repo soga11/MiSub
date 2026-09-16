@@ -82,10 +82,26 @@ export function isSingboxJsonTemplate(templateText) {
 /**
  * 使用用户提供的 sing-box JSON 骨架，注入真实节点。
  * 约定：
- * - selector/urltest 的 outbounds 为 [] 或含 "*" 时，自动填入全部节点 tag
+ * - selector/urltest 的 outbounds 为 [] 或含 "*" 时自动填节点
+ * - 分组名含 香港/HK → 只填香港节点；台湾/TW → 只填台湾；去广告/广告/AdGuard → 只填广告类
+ * - 其余空分组（手动选择/自动选择等）填入全部节点
  * - 其余分组引用（如 "🚀 节点选择"、"DIRECT"）原样保留
  * - 节点 outbound 追加到 outbounds 末尾；缺失 DIRECT/REJECT 时自动补齐
  */
+function pickNodesForGroupTag(groupTag, nodeOutbounds) {
+    const tag = String(groupTag || '');
+    if (/香港|港|HK|Hong Kong|HKG/i.test(tag)) {
+        return nodeOutbounds.filter((o) => /香港|港|HK|Hong Kong|HKG/i.test(o.tag));
+    }
+    if (/台湾|臺|TW|Taiwan|TPE/i.test(tag)) {
+        return nodeOutbounds.filter((o) => /台湾|臺|TW|Taiwan|TPE/i.test(o.tag));
+    }
+    if (/去广告|广告|AdGuard|Ads?/i.test(tag)) {
+        return nodeOutbounds.filter((o) => /去广告|广告|AdGuard|Ads?/i.test(o.tag));
+    }
+    return nodeOutbounds;
+}
+
 export function renderSingboxFromJsonTemplate(templateText, options = {}) {
     const template = JSON.parse(templateText);
     if (!template || typeof template !== 'object' || Array.isArray(template)) {
@@ -114,8 +130,12 @@ export function renderSingboxFromJsonTemplate(templateText, options = {}) {
         const members = Array.isArray(outbound.outbounds) ? outbound.outbounds : [];
         const needsFill = members.length === 0 || members.includes('*');
         if (!needsFill) return outbound;
+        const picked = pickNodesForGroupTag(outbound.tag, nodeOutbounds);
+        // 地区分组若无匹配节点则退回全部，避免空 urltest 无法启动
+        const fillNodes = picked.length > 0 ? picked : nodeOutbounds;
+        const fillTags = fillNodes.map((o) => o.tag);
         const kept = members.filter((tag) => tag && tag !== '*' && !nodeTagSet.has(tag));
-        return { ...outbound, outbounds: [...kept, ...nodeTags] };
+        return { ...outbound, outbounds: [...kept, ...fillTags] };
     });
 
     const existingTags = new Set(
