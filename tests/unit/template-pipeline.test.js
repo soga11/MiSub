@@ -994,4 +994,33 @@ custom_proxy_group=🤖 AI 服务\`select\`[]🚀 节点选择\`[]DIRECT
         expect(tw.outbounds.length).toBe(1);
         expect(tw.outbounds[0]).toContain('台湾');
     });
+
+    it('supports custom filter field on JSON template groups', () => {
+        const template = {
+            outbounds: [
+                { tag: '🇭🇰 香港负载', type: 'urltest', outbounds: [], filter: '电视|TV' },
+                { tag: '🛡️ 去广告', type: 'urltest', outbounds: [], filter: ['去广告', 'AdGuard'] },
+                { tag: '👋 手动选择', type: 'selector', outbounds: [] },
+            ],
+        };
+        const rendered = renderSingboxFromJsonTemplate(JSON.stringify(template), {
+            nodeList: [
+                'trojan://p@1.1.1.1:443#香港电视节点',
+                'trojan://p@2.2.2.2:443#香港节点',
+                'trojan://p@3.3.3.3:443#台湾去广告',
+                'trojan://p@4.4.4.4:443#日本普通',
+            ].join('\n'),
+        });
+        const parsed = JSON.parse(rendered);
+        const hk = parsed.outbounds.find((o) => o.tag === '🇭🇰 香港负载');
+        const ads = parsed.outbounds.find((o) => o.tag === '🛡️ 去广告');
+        const manual = parsed.outbounds.find((o) => o.tag === '👋 手动选择');
+
+        expect(hk.outbounds.length).toBe(1);
+        expect(hk.outbounds[0]).toContain('电视');
+        expect(hk.filter).toBeUndefined();
+        expect(ads.outbounds.length).toBe(1);
+        expect(ads.outbounds[0]).toContain('去广告');
+        expect(manual.outbounds.length).toBe(4);
+    });
 });

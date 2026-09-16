@@ -83,23 +83,53 @@ export function isSingboxJsonTemplate(templateText) {
  * 使用用户提供的 sing-box JSON 骨架，注入真实节点。
  * 约定：
  * - selector/urltest 的 outbounds 为 [] 或含 "*" 时自动填节点
- * - 分组名含 香港/HK → 只填香港节点；台湾/TW → 只填台湾；去广告/广告/AdGuard → 只填广告类
+ * - 可在分组上写 "filter": "香港|HK"（字符串正则或字符串数组），精确控制匹配哪些节点
+ * - 可写 "exclude": "广告" 排除
+ * - 未写 filter 时：分组名含 香港/HK、台湾/TW、去广告 会按名称启发式过滤
  * - 其余空分组（手动选择/自动选择等）填入全部节点
- * - 其余分组引用（如 "🚀 节点选择"、"DIRECT"）原样保留
+ * - filter/exclude 为引擎扩展字段，输出 JSON 时会剔除
  * - 节点 outbound 追加到 outbounds 末尾；缺失 DIRECT/REJECT 时自动补齐
  */
-function pickNodesForGroupTag(groupTag, nodeOutbounds) {
-    const tag = String(groupTag || '');
-    if (/香港|港|HK|Hong Kong|HKG/i.test(tag)) {
-        return nodeOutbounds.filter((o) => /香港|港|HK|Hong Kong|HKG/i.test(o.tag));
+function matchesAnyPattern(text, pattern) {
+    if (pattern == null || pattern === '') return false;
+    const list = Array.isArray(pattern) ? pattern : [pattern];
+    return list.some((p) => {
+        try {
+            return new RegExp(String(p), 'i').test(text);
+        } catch {
+            return String(text).toLowerCase().includes(String(p).toLowerCase());
+        }
+    });
+}
+
+function pickNodesForGroup(group, nodeOutbounds) {
+    const tag = String(group?.tag || '');
+    const filter = group?.filter ?? group?.include;
+    const exclude = group?.exclude;
+
+    let picked;
+    if (filter != null && filter !== '') {
+        picked = nodeOutbounds.filter((o) => matchesAnyPattern(o.tag, filter));
+    } else if (/香港|港|HK|Hong Kong|HKG/i.test(tag)) {
+        picked = nodeOutbounds.filter((o) => /香港|港|HK|Hong Kong|HKG/i.test(o.tag));
+    } else if (/台湾|臺|TW|Taiwan|TPE/i.test(tag)) {
+        picked = nodeOutbounds.filter((o) => /台湾|臺|TW|Taiwan|TPE/i.test(o.tag));
+    } else if (/去广告|广告|AdGuard|Ads?/i.test(tag)) {
+        picked = nodeOutbounds.filter((o) => /去广告|广告|AdGuard|Ads?/i.test(o.tag));
+    } else {
+        picked = nodeOutbounds;
     }
-    if (/台湾|臺|TW|Taiwan|TPE/i.test(tag)) {
-        return nodeOutbounds.filter((o) => /台湾|臺|TW|Taiwan|TPE/i.test(o.tag));
+
+    if (exclude != null && exclude !== '') {
+        picked = picked.filter((o) => !matchesAnyPattern(o.tag, exclude));
     }
-    if (/去广告|广告|AdGuard|Ads?/i.test(tag)) {
-        return nodeOutbounds.filter((o) => /去广告|广告|AdGuard|Ads?/i.test(o.tag));
-    }
-    return nodeOutbounds;
+    return picked;
+}
+
+function stripEngineOnlyFields(outbound) {
+    if (!outbound || typeof outbound !== 'object') return outbound;
+    const { filter, include, exclude, ...rest } = outbound;
+    return rest;
 }
 
 export function renderSingboxFromJsonTemplate(templateText, options = {}) {
@@ -125,17 +155,24 @@ export function renderSingboxFromJsonTemplate(templateText, options = {}) {
     const existingOutbounds = Array.isArray(template.outbounds) ? template.outbounds : [];
     const filledOutbounds = existingOutbounds.map((outbound) => {
         if (!outbound || (outbound.type !== 'selector' && outbound.type !== 'urltest')) {
-            return outbound;
+            return stripEngineOnlyFields(outbound);
         }
         const members = Array.isArray(outbound.outbounds) ? outbound.outbounds : [];
         const needsFill = members.length === 0 || members.includes('*');
-        if (!needsFill) return outbound;
-        const picked = pickNodesForGroupTag(outbound.tag, nodeOutbounds);
-        // 地区分组若无匹配节点则退回全部，避免空 urltest 无法启动
-        const fillNodes = picked.length > 0 ? picked : nodeOutbounds;
+        if (!needsFill) return stripEngineOnlyFields(outbound);
+        const picked = pickNodesForGroup(outbound, nodeOutbounds);
+        // 有 filter 且无匹配时保持空，避免把全部节点误塞进去；无 filter 时退回全部
+        const hasExplicitFilter =
+            (outbound.filter != null && outbound.filter !== '') ||
+            (outbound.include != null && outbound.include !== '');
+        const fillNodes =
+            picked.length > 0 ? picked : hasExplicitFilter ? [] : nodeOutbounds;
         const fillTags = fillNodes.map((o) => o.tag);
         const kept = members.filter((tag) => tag && tag !== '*' && !nodeTagSet.has(tag));
-        return { ...outbound, outbounds: [...kept, ...fillTags] };
+        return stripEngineOnlyFields({
+            ...outbound,
+            outbounds: [...kept, ...fillTags],
+        });
     });
 
     const existingTags = new Set(
