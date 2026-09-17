@@ -85,11 +85,10 @@ export function isSingboxJsonTemplate(templateText) {
  * - selector/urltest 的 outbounds 为 [] 或含 "*" 时自动填节点
  * - 可在分组上写 "filter": "香港|HK"（字符串正则或字符串数组），精确控制匹配哪些节点
  * - 可写 "exclude": "广告" 排除
- * - 未写 filter 时：分组名含 香港/HK、台湾/TW、去广告 会按名称启发式过滤
- * - 其余空分组（手动选择/自动选择等）填入全部节点
+ * - 未写 filter/include 时填入全部节点；分组名称不参与任何判断
  * - filter/exclude 为引擎扩展字段，输出 JSON 时会剔除
- * - 显式 filter 无匹配时回退全部节点，避免生成无法加载的空 urltest/selector
- * - 节点 outbound 追加到 outbounds 末尾；缺失 DIRECT/REJECT 时自动补齐
+ * - 显式 filter 无匹配时直接报错，避免悄悄把错误地区的节点塞进分组
+ * - 节点 outbound 追加到 outbounds 末尾；其余出站、DNS 和路由完全服从模板
  */
 function matchesAnyPattern(text, pattern) {
     if (pattern == null || pattern === '') return false;
@@ -104,22 +103,13 @@ function matchesAnyPattern(text, pattern) {
 }
 
 function pickNodesForGroup(group, nodeOutbounds) {
-    const tag = String(group?.tag || '');
     const filter = group?.filter ?? group?.include;
     const exclude = group?.exclude;
 
-    let picked;
-    if (filter != null && filter !== '') {
-        picked = nodeOutbounds.filter((o) => matchesAnyPattern(o.tag, filter));
-    } else if (/香港|港|HK|Hong Kong|HKG/i.test(tag)) {
-        picked = nodeOutbounds.filter((o) => /香港|港|HK|Hong Kong|HKG/i.test(o.tag));
-    } else if (/台湾|臺|TW|Taiwan|TPE/i.test(tag)) {
-        picked = nodeOutbounds.filter((o) => /台湾|臺|TW|Taiwan|TPE/i.test(o.tag));
-    } else if (/去广告|广告|AdGuard|Ads?/i.test(tag)) {
-        picked = nodeOutbounds.filter((o) => /去广告|广告|AdGuard|Ads?/i.test(o.tag));
-    } else {
-        picked = nodeOutbounds;
-    }
+    let picked =
+        filter != null && filter !== ''
+            ? nodeOutbounds.filter((o) => matchesAnyPattern(o.tag, filter))
+            : nodeOutbounds;
 
     if (exclude != null && exclude !== '') {
         picked = picked.filter((o) => !matchesAnyPattern(o.tag, exclude));
@@ -162,9 +152,13 @@ export function renderSingboxFromJsonTemplate(templateText, options = {}) {
         const needsFill = members.length === 0 || members.includes('*');
         if (!needsFill) return stripEngineOnlyFields(outbound);
         const picked = pickNodesForGroup(outbound, nodeOutbounds);
-        // 节点改名或过滤表达式暂时无匹配时，回退全部节点，避免空组令配置失效。
-        const fillNodes = picked.length > 0 ? picked : nodeOutbounds;
-        const fillTags = fillNodes.map((o) => o.tag);
+        const explicitFilter = outbound.filter ?? outbound.include;
+        if (explicitFilter != null && explicitFilter !== '' && picked.length === 0) {
+            throw new Error(
+                `Sing-box template group "${String(outbound.tag || '')}" matched no nodes`
+            );
+        }
+        const fillTags = picked.map((o) => o.tag);
         const kept = members.filter((tag) => tag && tag !== '*' && !nodeTagSet.has(tag));
         return stripEngineOnlyFields({
             ...outbound,
@@ -178,13 +172,6 @@ export function renderSingboxFromJsonTemplate(templateText, options = {}) {
     const appendedNodes = nodeOutbounds.filter((outbound) => !existingTags.has(outbound.tag));
 
     const resultOutbounds = [...filledOutbounds, ...appendedNodes];
-    const resultTags = new Set(resultOutbounds.map((outbound) => outbound?.tag).filter(Boolean));
-    if (!resultTags.has('DIRECT')) {
-        resultOutbounds.push({ tag: 'DIRECT', type: 'direct' });
-    }
-    if (!resultTags.has('REJECT')) {
-        resultOutbounds.push({ tag: 'REJECT', type: 'block' });
-    }
 
     return JSON.stringify({ ...template, outbounds: resultOutbounds }, null, 2) + '\n';
 }
