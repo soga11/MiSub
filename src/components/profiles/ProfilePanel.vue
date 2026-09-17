@@ -27,6 +27,7 @@
         searchable: { type: Boolean, default: false },
         searchQuery: { type: String, default: '' },
         filteredCount: { type: Number, default: undefined },
+        manualNodeCount: { type: Number, default: 0 },
     });
 
     const emit = defineEmits([
@@ -209,6 +210,7 @@
                 >
                     <ProfileCard
                         :profile="profile"
+                        :all-manual-node-count="manualNodeCount"
                         :is-sorting="isSorting"
                         :compact="compact"
                         @edit="handleEdit(profile.id)"

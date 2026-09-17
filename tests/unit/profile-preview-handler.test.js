@@ -82,4 +82,46 @@ describe('handleProfileMode preview transforms', () => {
         expect(result.nodes[0].name).toBe('Renamed Node');
         expect(result.nodes[0].url).toContain('#Renamed%20Node');
     });
+
+    it('automatically previews manual nodes added after an opted-in profile was saved', async () => {
+        createAdapter.mockReturnValue({
+            getProfileById: vi.fn().mockResolvedValue({
+                id: 'profile-auto',
+                enabled: true,
+                subscriptions: [],
+                manualNodes: [],
+                autoIncludeManualNodes: true,
+            }),
+            getAllSubscriptions: vi.fn().mockResolvedValue([
+                {
+                    id: 'node-added-later',
+                    enabled: true,
+                    url: 'trojan://password@example.com:443#Added%20Later',
+                    name: 'Added Later',
+                },
+                {
+                    id: 'remote-sub',
+                    enabled: true,
+                    url: 'https://example.com/sub',
+                    name: 'Remote',
+                },
+            ]),
+            get: vi.fn().mockResolvedValue({ defaultOperators: [] }),
+        });
+
+        const { handleProfileMode } =
+            await import('../../functions/modules/subscription/profile-handler.js');
+        const result = await handleProfileMode(
+            new Request('https://example.com/api/subscription_nodes'),
+            {},
+            'profile-auto',
+            'MiSub-Test/1.0',
+            true,
+            false
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.nodes).toHaveLength(1);
+        expect(result.nodes[0].name).toBe('Added Later');
+    });
 });

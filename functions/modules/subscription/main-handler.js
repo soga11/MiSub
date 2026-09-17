@@ -50,6 +50,7 @@ import {
 } from './template-pipeline.js';
 import { getBuiltinTemplate } from './builtin-template-registry.js';
 import { assertPublicNetworkUrl } from '../security-utils.js';
+import { resolveProfileManualNodeIds } from '../utils/profile-node-selection.js';
 
 function maskSensitiveLogValue(value) {
     const text = String(value ?? '');
@@ -652,13 +653,14 @@ export async function handleMisubRequest(context) {
             } else {
                 subName = profile.name;
                 targetMisubs = [];
+                const profileNodeIds = resolveProfileManualNodeIds(profile, allMisubs);
                 const relatedIds = [
                     ...(Array.isArray(profile.subscriptions)
                         ? profile.subscriptions.map((item) =>
                               typeof item === 'object' ? item.id : item
                           )
                         : []),
-                    ...(Array.isArray(profile.manualNodes) ? profile.manualNodes : []),
+                    ...profileNodeIds,
                 ].filter(Boolean);
                 const relatedSubs =
                     typeof storageAdapter.getSubscriptionsByIds === 'function'
@@ -691,20 +693,17 @@ export async function handleMisubRequest(context) {
                 }
 
                 // 2. Add manual nodes in order defined by profile
-                const profileNodeIds = profile.manualNodes || [];
-                if (Array.isArray(profileNodeIds)) {
-                    profileNodeIds.forEach((id) => {
-                        const node = misubMap.get(id);
-                        if (
-                            node &&
-                            node.enabled &&
-                            typeof node.url === 'string' &&
-                            !node.url.startsWith('http')
-                        ) {
-                            targetMisubs.push(node);
-                        }
-                    });
-                }
+                profileNodeIds.forEach((id) => {
+                    const node = misubMap.get(id);
+                    if (
+                        node &&
+                        node.enabled &&
+                        typeof node.url === 'string' &&
+                        !node.url.startsWith('http')
+                    ) {
+                        targetMisubs.push(node);
+                    }
+                });
             }
             // [新增] 增加订阅组下载计数
             // 仅在非回调请求时及非内部请求时增加计数(避免重复计数)

@@ -25,6 +25,7 @@ import { sendTgNotification, checkAndNotify } from './notifications.js';
 import { clearAllNodeCaches } from '../services/node-cache-service.js';
 import { buildSubscriptionNodeCacheKey } from '../services/subscription-service.js';
 import { maybeRunScheduledTasks } from './scheduled-task-runner.js';
+import { resolveProfileManualNodeIds } from './utils/profile-node-selection.js';
 
 import {
     KV_KEY_SUBS,
@@ -717,11 +718,14 @@ export async function handlePublicProfilesRequest(env) {
     try {
         const storageAdapter = await getStorageAdapter(env);
         const cachedSettings = await SettingsCache.get(env);
-        const [profiles, settings] = await Promise.all([
+        const [profiles, settings, subscriptions] = await Promise.all([
             typeof storageAdapter.getAllProfiles === 'function'
                 ? storageAdapter.getAllProfiles()
                 : storageAdapter.get(KV_KEY_PROFILES).then((res) => res || []),
             Promise.resolve(cachedSettings || {}).then((res) => res || {}),
+            typeof storageAdapter.getAllSubscriptions === 'function'
+                ? storageAdapter.getAllSubscriptions()
+                : storageAdapter.get(KV_KEY_SUBS).then((res) => res || []),
         ]);
 
         const profileToken = settings.profileToken || 'profiles';
@@ -766,7 +770,7 @@ export async function handlePublicProfilesRequest(env) {
                 customId: p.customId,
                 updatedAt: p.updatedAt,
                 subscriptionCount: (p.subscriptions || []).length,
-                manualNodeCount: (p.manualNodes || []).length,
+                manualNodeCount: resolveProfileManualNodeIds(p, subscriptions).length,
             }));
 
         // Custom Page Config

@@ -133,6 +133,7 @@
     <div class="max-w-(--breakpoint-xl) mx-auto">
         <ProfilePanel
             :profiles="profiles"
+            :manual-node-count="manualNodes.length"
             :paginated-profiles="paginatedProfiles"
             :current-page="profilesCurrentPage"
             :search-query="profileSearchQuery"

@@ -1198,7 +1198,7 @@ components:
           type: string
     Profile:
       type: object
-      required: [id, name, description, enabled, isPublic, customId, subscriptionIds, manualNodeIds, target, sortIndex, createdAt, updatedAt]
+      required: [id, name, description, enabled, isPublic, customId, subscriptionIds, manualNodeIds, autoIncludeManualNodes, target, sortIndex, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -1220,6 +1220,9 @@ components:
           type: array
           items:
             type: string
+        autoIncludeManualNodes:
+          type: boolean
+          description: Dynamically include all current and future manual nodes in this profile.
         target:
           type: string
         sortIndex:
@@ -1250,6 +1253,9 @@ components:
           type: array
           items:
             type: string
+        autoIncludeManualNodes:
+          type: boolean
+          default: false
         target:
           type: string
           default: clash
@@ -1276,6 +1282,8 @@ components:
           type: array
           items:
             type: string
+        autoIncludeManualNodes:
+          type: boolean
         target:
           type: string
         sortIndex:

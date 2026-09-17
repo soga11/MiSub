@@ -7,6 +7,7 @@ import { runOperatorChain } from '../../utils/operator-runner.js';
 import { KV_KEY_SUBS, KV_KEY_PROFILES, KV_KEY_SETTINGS, DEFAULT_SETTINGS } from '../config.js';
 import { fetchSubscriptionNodes } from './node-fetcher.js';
 import { applyManualNodeName } from '../utils/node-cleaner.js';
+import { resolveProfileManualNodeIds } from '../utils/profile-node-selection.js';
 
 function ensureArray(data) {
     if (!data) return [];
@@ -123,16 +124,19 @@ export async function handleProfileMode(
         return createJsonResponse({ error: '订阅组不存在或已禁用' }, 404);
     }
 
+    const allSubscriptions =
+        profile.autoIncludeManualNodes === true ? await storageAdapter.getAllSubscriptions() : null;
+    const profileNodeIds = resolveProfileManualNodeIds(profile, allSubscriptions || []);
     const relatedIds = [
         ...(Array.isArray(profile.subscriptions)
             ? profile.subscriptions.map((item) => (typeof item === 'object' ? item.id : item))
             : []),
-        ...(Array.isArray(profile.manualNodes) ? profile.manualNodes : []),
+        ...profileNodeIds,
     ].filter(Boolean);
     const relatedSubs =
-        typeof storageAdapter.getSubscriptionsByIds === 'function'
-            ? await storageAdapter.getSubscriptionsByIds(Array.from(new Set(relatedIds)))
-            : (await storageAdapter.get(KV_KEY_SUBS)) || [];
+        allSubscriptions || typeof storageAdapter.getSubscriptionsByIds !== 'function'
+            ? allSubscriptions || (await storageAdapter.get(KV_KEY_SUBS)) || []
+            : await storageAdapter.getSubscriptionsByIds(Array.from(new Set(relatedIds)));
     const misubMap = new Map(relatedSubs.map((item) => [item.id, item]));
 
     const targetMisubs = [];
@@ -149,15 +153,12 @@ export async function handleProfileMode(
     }
 
     // 2. Add manual nodes in order defined by profile
-    const profileNodeIds = profile.manualNodes || [];
-    if (Array.isArray(profileNodeIds)) {
-        profileNodeIds.forEach((id) => {
-            const node = misubMap.get(id);
-            if (node && node.enabled && !node.url.startsWith('http')) {
-                targetMisubs.push(node);
-            }
-        });
-    }
+    profileNodeIds.forEach((id) => {
+        const node = misubMap.get(id);
+        if (node && node.enabled && !node.url.startsWith('http')) {
+            targetMisubs.push(node);
+        }
+    });
 
     // 分离HTTP订阅和手工节点
     const targetSubscriptions = targetMisubs.filter((item) => item.url.startsWith('http'));

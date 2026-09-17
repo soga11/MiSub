@@ -237,6 +237,7 @@
                 profileCopy.operators = Array.isArray(profileCopy.operators)
                     ? profileCopy.operators
                     : [];
+                profileCopy.autoIncludeManualNodes = profileCopy.autoIncludeManualNodes === true;
 
                 localProfile.value = profileCopy;
             } else {
@@ -245,6 +246,7 @@
                     enabled: true,
                     subscriptions: [],
                     manualNodes: [],
+                    autoIncludeManualNodes: false,
                     customId: '',
                     expiresAt: '',
                     isPublic: true,
@@ -377,9 +379,11 @@
                         :active-group-filter="activeManualNodeGroupFilter"
                         :groups="manualNodeGroups"
                         :selected-ids="localProfile.manualNodes || []"
+                        :auto-include-all="localProfile.autoIncludeManualNodes === true"
                         @update:search-term="nodeSearchTerm = $event"
                         @update:group-filter="activeManualNodeGroupFilter = $event"
                         @update:selected-ids="updateSelectedIds('manualNodes', $event)"
+                        @update:auto-include-all="localProfile.autoIncludeManualNodes = $event"
                         @toggle-selection="toggleSelection('manualNodes', $event)"
                         @select-all="handleSelectAll('manualNodes', filteredManualNodes)"
                         @deselect-all="handleDeselectAll('manualNodes', filteredManualNodes)"

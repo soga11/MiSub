@@ -130,6 +130,7 @@ D1 当前采用“行级 JSON”结构：
 - `isPublic`：是否在公开页面展示。
 - `subscriptions`：订阅源 ID 列表；兼容对象数组，后端会取对象的 `id`。
 - `manualNodes`：手动节点 ID 列表。
+- `autoIncludeManualNodes`：是否动态包含当前全部手动节点；默认 `false`。开启后输出时忽略 `manualNodes` 的选择范围，并自动包含以后新增或批量导入的手动节点。
 - `sortIndex`：保存时按数组顺序写入。
 - `downloadCount`：展示用下载次数；读取时会从 `misub_profile_download_count_<id>` 叠加。
 - `expiresAt`：订阅组过期时间。

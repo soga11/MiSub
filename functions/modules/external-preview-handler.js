@@ -9,6 +9,7 @@ import {
     isRemoteSubscription,
     toExternalProfile,
 } from './external-api-mappers.js';
+import { resolveProfileManualNodeIds } from './utils/profile-node-selection.js';
 
 export async function handleExternalPreviewRequest(_request, env, profileId) {
     const storageAdapter = await getExternalStorageAdapter(env);
@@ -18,7 +19,7 @@ export async function handleExternalPreviewRequest(_request, env, profileId) {
     const allSubscriptions = await storageAdapter.getAllSubscriptions();
     const byId = new Map(allSubscriptions.map((item) => [item.id, item]));
     const subscriptionIds = Array.isArray(profile.subscriptions) ? profile.subscriptions : [];
-    const manualNodeIds = Array.isArray(profile.manualNodes) ? profile.manualNodes : [];
+    const manualNodeIds = resolveProfileManualNodeIds(profile, allSubscriptions);
 
     const remoteSources = subscriptionIds
         .map((id) => byId.get(id))

@@ -2,6 +2,7 @@
     import { computed } from 'vue';
     import draggable from 'vuedraggable';
     import { useI18n } from '@/i18n/index.js';
+    import Switch from '../../ui/Switch.vue';
 
     const { t } = useI18n();
 
@@ -30,12 +31,17 @@
             type: Array,
             default: () => [],
         },
+        autoIncludeAll: {
+            type: Boolean,
+            default: false,
+        },
     });
 
     const emit = defineEmits([
         'update:searchTerm',
         'update:groupFilter',
         'update:selectedIds',
+        'update:autoIncludeAll',
         'toggle-selection',
         'select-all',
         'deselect-all',
@@ -46,13 +52,18 @@
         set: (val) => emit('update:searchTerm', val),
     });
 
+    const effectiveSelectedIds = computed(() =>
+        props.autoIncludeAll ? props.nodes.map((node) => node.id) : props.selectedIds
+    );
+
     // 根据 selectedIds 顺序获取已选节点对象列表
     const orderedSelectedNodes = computed({
         get() {
             const nodeMap = new Map(props.nodes.map((n) => [n.id, n]));
-            return props.selectedIds.map((id) => nodeMap.get(id)).filter(Boolean);
+            return effectiveSelectedIds.value.map((id) => nodeMap.get(id)).filter(Boolean);
         },
         set(newList) {
+            if (props.autoIncludeAll) return;
             // 拖拽排序后更新 ID 顺序
             emit(
                 'update:selectedIds',
@@ -64,11 +75,28 @@
 
 <template>
     <div v-if="nodes.length > 0" class="space-y-2">
+        <div
+            class="flex items-center justify-between gap-4 rounded-lg border border-indigo-100 bg-indigo-50/70 p-3 dark:border-indigo-500/20 dark:bg-indigo-500/10"
+        >
+            <div class="min-w-0">
+                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">
+                    {{ t('profileModal.autoIncludeAllNodes') }}
+                </p>
+                <p class="mt-0.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                    {{ t('profileModal.autoIncludeAllNodesHint') }}
+                </p>
+            </div>
+            <Switch
+                :model-value="autoIncludeAll"
+                :label="t('profileModal.autoIncludeAllNodes')"
+                @update:model-value="emit('update:autoIncludeAll', $event)"
+            />
+        </div>
         <div class="flex justify-between items-center mb-2">
             <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {{ t('profileModal.selectNodes') }}
             </h4>
-            <div class="space-x-2">
+            <div v-if="!autoIncludeAll" class="space-x-2">
                 <button @click="emit('select-all')" class="text-xs text-indigo-600 hover:underline">
                     {{ t('profileModal.selectAll') }}
                 </button>
@@ -150,9 +178,10 @@
                 <label class="flex items-center space-x-3 cursor-pointer">
                     <input
                         type="checkbox"
-                        :checked="selectedIds.includes(node.id)"
+                        :checked="effectiveSelectedIds.includes(node.id)"
+                        :disabled="autoIncludeAll"
                         @change="emit('toggle-selection', node.id)"
-                        class="h-4 w-4 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        class="h-4 w-4 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
                     />
                     <span
                         class="text-sm text-gray-800 dark:text-gray-200 truncate"
@@ -167,7 +196,7 @@
         </div>
 
         <!-- 已选节点拖拽排序区域 -->
-        <div v-if="orderedSelectedNodes.length > 0" class="mt-3">
+        <div v-if="!autoIncludeAll && orderedSelectedNodes.length > 0" class="mt-3">
             <div class="flex justify-between items-center mb-1.5">
                 <h5 class="text-xs font-medium text-gray-500 dark:text-gray-400">
                     {{ t('profileModal.selectedDrag', { count: orderedSelectedNodes.length }) }}
@@ -235,10 +264,28 @@
             </draggable>
         </div>
     </div>
-    <div
-        v-else
-        class="text-center text-sm text-gray-500 p-4 bg-gray-50 dark:bg-gray-900/50 misub-radius-md flex items-center justify-center h-full"
-    >
-        {{ t('profileModal.noAvailableNodes') }}
+    <div v-else class="space-y-2">
+        <div
+            class="flex items-center justify-between gap-4 rounded-lg border border-indigo-100 bg-indigo-50/70 p-3 dark:border-indigo-500/20 dark:bg-indigo-500/10"
+        >
+            <div class="min-w-0">
+                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">
+                    {{ t('profileModal.autoIncludeAllNodes') }}
+                </p>
+                <p class="mt-0.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                    {{ t('profileModal.autoIncludeAllNodesHint') }}
+                </p>
+            </div>
+            <Switch
+                :model-value="autoIncludeAll"
+                :label="t('profileModal.autoIncludeAllNodes')"
+                @update:model-value="emit('update:autoIncludeAll', $event)"
+            />
+        </div>
+        <div
+            class="text-center text-sm text-gray-500 p-4 bg-gray-50 dark:bg-gray-900/50 misub-radius-md flex items-center justify-center h-24"
+        >
+            {{ t('profileModal.noAvailableNodes') }}
+        </div>
     </div>
 </template>

@@ -18,6 +18,10 @@
             type: Boolean,
             default: false,
         },
+        allManualNodeCount: {
+            type: Number,
+            default: 0,
+        },
     });
 
     const emit = defineEmits([
@@ -36,7 +40,11 @@
         Array.isArray(props.profile?.subscriptions) ? props.profile.subscriptions.length : 0
     );
     const manualNodeCount = computed(() =>
-        Array.isArray(props.profile?.manualNodes) ? props.profile.manualNodes.length : 0
+        props.profile?.autoIncludeManualNodes === true
+            ? props.allManualNodeCount
+            : Array.isArray(props.profile?.manualNodes)
+              ? props.profile.manualNodes.length
+              : 0
     );
     const isEnabled = computed(() => props.profile?.enabled !== false);
     const isPublic = computed(() => props.profile?.isPublic === true);
@@ -66,6 +74,12 @@
                         class="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
                     >
                         {{ t('profiles.public') }}
+                    </span>
+                    <span
+                        v-if="profile.autoIncludeManualNodes === true"
+                        class="rounded-full bg-indigo-100 px-2.5 py-0.5 text-[11px] font-medium text-indigo-700 dark:bg-indigo-500/15 dark:text-indigo-300"
+                    >
+                        {{ t('profiles.autoAllNodes') }}
                     </span>
                 </div>
                 <p

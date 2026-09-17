@@ -555,6 +555,7 @@
                 />
                 <ProfilePanel
                     :profiles="profiles"
+                    :manual-node-count="manualNodes.length"
                     :compact="true"
                     :is-sorting="isSortingProfiles"
                     @add="handleAddProfile"
