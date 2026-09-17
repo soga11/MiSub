@@ -1,8 +1,6 @@
 name: Fork Sync
 
 on:
-  schedule:
-    - cron: "0 22 * * *"     # 每天北京时间 06:00 执行
   workflow_dispatch:
 
 permissions:
@@ -50,9 +48,7 @@ jobs:
           git fetch --prune origin main
           git fetch --prune upstream main
 
-      - name: Mirror upstream main
-        env:
-          SYNC_PAT: ${{ secrets.SYNC_PAT }}
+      - name: Merge upstream main safely
         run: |
           set -euo pipefail
 
@@ -64,15 +60,14 @@ jobs:
             exit 0
           fi
 
-          if [ -z "${SYNC_PAT:-}" ]; then
-            WORKFLOW_DIFF="$(git diff --name-only "${ORIGIN_SHA}" "${UPSTREAM_SHA}" -- .github/workflows || true)"
-            if [ -n "${WORKFLOW_DIFF}" ]; then
-              echo "::notice title=Fork Sync skipped::上游包含 workflow 文件变更，默认 GITHUB_TOKEN 不能创建或更新 workflow 文件。请在 fork 仓库配置 secret：SYNC_PAT（repo + workflow 权限）后手动重新运行，或在网页使用 Sync fork / Discard commits 对齐上游。"
-              exit 0
-            fi
+          git checkout -B main origin/main
+
+          if git merge-base --is-ancestor upstream/main origin/main; then
+            echo "✨ Fork 已包含全部上游提交，无需同步。"
+            exit 0
           fi
 
-          echo "🚀 正在镜像上游 main，fork 本地 main 上的额外提交会被丢弃。"
-          git reset --hard upstream/main
-          git push --force-with-lease origin main
-          echo "✅ Fork main 已镜像到上游 main。"
+          echo "🚀 正在安全合并上游 main，并保留 fork 自定义提交。"
+          git merge --no-edit upstream/main
+          git push origin main
+          echo "✅ 上游 main 已安全合并到 fork main。"
