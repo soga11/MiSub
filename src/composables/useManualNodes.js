@@ -46,7 +46,7 @@ export function useManualNodes(markDirty) {
 
     const manualNodesTotalPages = computed(() => {
         if (manualNodesPerPage.value === -1) return 1; // All
-        return Math.ceil(filteredManualNodes.value.length / manualNodesPerPage.value);
+        return Math.max(1, Math.ceil(filteredManualNodes.value.length / manualNodesPerPage.value));
     });
 
     const paginatedManualNodes = computed(() => {
@@ -255,8 +255,9 @@ export function useManualNodes(markDirty) {
             return (a.name || '').localeCompare(b.name || '', 'zh-CN');
         });
 
+        const manualNodeIds = new Set(nodes.map((node) => node.id));
         const otherItems = (allSubscriptions.value || []).filter(
-            (item) => !nodes.some((n) => n.id === item.id)
+            (item) => !manualNodeIds.has(item.id)
         );
         dataStore.overwriteSubscriptions([...nodes, ...otherItems]);
 
@@ -297,6 +298,32 @@ export function useManualNodes(markDirty) {
 
         // 4. Mark Dirty
         markDirty();
+    }
+
+    /**
+     * 将指定手动节点移动到整个节点列表顶部。
+     * 保留其余手动节点与远程订阅的相对顺序，筛选状态不会改变置顶语义。
+     * @returns {boolean} 是否实际发生了移动
+     */
+    function moveNodeToTop(nodeId) {
+        const items = allSubscriptions.value || [];
+        const targetIndex = items.findIndex(
+            (item) => item.id === nodeId && isManualNodeEntry(item)
+        );
+
+        if (targetIndex <= 0) return false;
+
+        const target = items[targetIndex];
+        dataStore.overwriteSubscriptions([
+            target,
+            ...items.slice(0, targetIndex),
+            ...items.slice(targetIndex + 1),
+        ]);
+
+        manualNodesCurrentPage.value = 1;
+        markDirty();
+        showToast(t('manualNodes.movedToTop'), 'success');
+        return true;
     }
 
     const manualNodeGroups = computed(() => {
@@ -445,6 +472,7 @@ export function useManualNodes(markDirty) {
         buildDedupPlan,
         applyDedupPlan,
         reorderManualNodes, // Added
+        moveNodeToTop,
         renameGroup,
         deleteGroup,
         reorderGroups, // New: 调整分组顺序

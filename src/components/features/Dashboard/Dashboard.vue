@@ -148,6 +148,7 @@
         autoSortNodes,
         deduplicateNodes,
         reorderManualNodes,
+        moveNodeToTop,
         activeGroupFilter,
         setGroupFilter,
         batchUpdateGroup,
@@ -527,6 +528,7 @@
                     @import="showSubscriptionImportModal = true"
                     @delete-all="showDeleteNodesModal = true"
                     @reorder="reorderManualNodes"
+                    @move-to-top="moveNodeToTop"
                     @set-group-filter="setGroupFilter"
                     @batch-update-group="(ids, group) => batchUpdateGroup(ids, group)"
                     @batch-delete-nodes="handleBatchDeleteRequest"

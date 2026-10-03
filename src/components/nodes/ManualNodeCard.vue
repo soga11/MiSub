@@ -13,7 +13,14 @@
         isPinging: Boolean,
     });
 
-    const emit = defineEmits(['delete', 'edit', 'toggle-select', 'filter-group', 'ping']);
+    const emit = defineEmits([
+        'delete',
+        'edit',
+        'toggle-select',
+        'filter-group',
+        'ping',
+        'move-to-top',
+    ]);
     const { t } = useI18n();
 
     const getProtocol = (url) => {
@@ -218,6 +225,27 @@
             v-if="!isSelectionMode"
             class="shrink-0 flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200"
         >
+            <button
+                @click.stop="emit('move-to-top')"
+                class="rounded-md p-2 text-gray-400 transition-colors hover:bg-primary-500/10 hover:text-primary-500"
+                :title="t('actions.moveToTop')"
+                :aria-label="t('actions.moveToTop')"
+            >
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M5 5h14M12 19V8m0 0-4 4m4-4 4 4"
+                    />
+                </svg>
+            </button>
             <button
                 @click.stop="emit('ping')"
                 class="rounded-md p-2 text-gray-400 transition-colors hover:bg-green-500/10 hover:text-green-500"

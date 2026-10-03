@@ -52,6 +52,7 @@
         buildDedupPlan,
         applyDedupPlan,
         reorderManualNodes,
+        moveNodeToTop,
         manualNodeGroups,
         renameGroup,
         deleteGroup,
@@ -203,6 +204,7 @@
             @import="showSubscriptionImportModal = true"
             @delete-all="showDeleteNodesModal = true"
             @reorder="reorderManualNodes"
+            @move-to-top="moveNodeToTop"
             @rename-group="renameGroup"
             @set-group-filter="setGroupFilter"
             @batch-update-group="(ids, group) => batchUpdateGroup(ids, group)"

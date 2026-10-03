@@ -129,6 +129,26 @@ describe('手动节点分组管理', () => {
         expect(dataStore.subscriptions.map((node) => node.id)).toEqual(['a2', 'b1', 'a1', 's1']);
     });
 
+    it('可以将任意手动节点全局置顶并保留其他项目的相对顺序', () => {
+        dataStore.subscriptions = [
+            {
+                id: 's1',
+                url: 'https://subscription.example/sub',
+                name: 'Remote sub',
+                enabled: true,
+            },
+            { id: 'n1', url: 'ss://n1', name: 'Node1', enabled: true },
+            { id: 'n2', url: 'ss://n2', name: 'Node2', enabled: true },
+            { id: 'n3', url: 'ss://n3', name: 'Node3', enabled: true },
+        ];
+
+        expect(manualNodes.moveNodeToTop('n3')).toBe(true);
+        expect(dataStore.subscriptions.map((item) => item.id)).toEqual(['n3', 's1', 'n1', 'n2']);
+        expect(manualNodes.manualNodesCurrentPage.value).toBe(1);
+        expect(manualNodes.moveNodeToTop('n3')).toBe(false);
+        expect(manualNodes.moveNodeToTop('missing')).toBe(false);
+    });
+
     it('重命名为相同名称应被忽略', () => {
         manualNodes.reorderGroups(['HK', 'USA', 'Japan']);
         const beforeGroups = [...manualNodes.manualNodeGroups.value];

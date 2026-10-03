@@ -39,6 +39,7 @@
         'update:itemsPerPage', // Added
         'set-group-filter', // Added
         'ping',
+        'move-to-top',
     ]);
 
     const draggableModel = computed({
@@ -100,6 +101,7 @@
                                 @delete="emit('delete', node.id)"
                                 @filter-group="emit('set-group-filter', $event)"
                                 @ping="emit('ping', node.id)"
+                                @move-to-top="emit('move-to-top', node.id)"
                             />
                         </div>
                     </template>
@@ -127,6 +129,7 @@
                                 @delete="emit('delete', node.id)"
                                 @filter-group="emit('set-group-filter', $event)"
                                 @ping="emit('ping', node.id)"
+                                @move-to-top="emit('move-to-top', node.id)"
                             />
                         </div>
                     </template>
@@ -162,6 +165,7 @@
                         @delete="emit('delete', node.id)"
                         @filter-group="emit('set-group-filter', $event)"
                         @ping="emit('ping', node.id)"
+                        @move-to-top="emit('move-to-top', node.id)"
                     />
                 </div>
             </div>
@@ -170,7 +174,11 @@
                     v-for="(node, index) in paginatedNodes"
                     :key="node.id"
                     :node="node"
-                    :index="paginatedNodes.indexOf(node) + 1"
+                    :index="
+                        itemsPerPage === -1
+                            ? index + 1
+                            : (displayPage - 1) * itemsPerPage + index + 1
+                    "
                     class="list-item-animation"
                     :style="{ '--delay-index': Math.min(index, 20) }"
                     :is-selection-mode="isSelectionMode"
@@ -182,6 +190,7 @@
                     @delete="emit('delete', node.id)"
                     @filter-group="emit('set-group-filter', $event)"
                     @ping="emit('ping', node.id)"
+                    @move-to-top="emit('move-to-top', node.id)"
                 />
             </div>
         </div>

@@ -44,6 +44,7 @@
         'ping-all',
         'sort-by-latency',
         'manage-groups',
+        'move-to-top',
     ]);
 
     const isSelectionMode = ref(false);
@@ -134,6 +135,10 @@
 
     const handleDelete = (id) => emit('delete', id);
     const handleEdit = (id) => emit('edit', id);
+    const handleMoveToTop = (id) => {
+        emit('move-to-top', id);
+        handlePageChange(1);
+    };
     const handleAdd = () => emit('add');
     const handleChangePage = (page) => handlePageChange(page);
     const handleSetViewMode = (mode) => emit('update:viewMode', mode);
@@ -240,6 +245,7 @@
             :pinging-nodes="pingingNodes"
             :compact-grid="compactGrid"
             @ping="emit('ping', $event)"
+            @move-to-top="handleMoveToTop"
         />
     </div>
 </template>
