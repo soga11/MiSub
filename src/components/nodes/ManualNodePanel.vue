@@ -3,6 +3,7 @@
     import BulkOperations from './ManualNodePanel/BulkOperations.vue';
     import NodeActions from './ManualNodePanel/NodeActions.vue';
     import NodeTable from './ManualNodePanel/NodeTable.vue';
+    import UnlockControls from './UnlockControls.vue';
     import { useManualNodeSearchPagination } from '@/composables/manual-nodes/useManualNodeSearchPagination.js';
     import { normalizeManualNodeGroupName } from '@/composables/manual-nodes/groups.js';
 
@@ -48,6 +49,8 @@
     ]);
 
     const isSelectionMode = ref(false);
+    const unlockControls = ref(null);
+    const unlockResults = ref({});
     const selectedNodeIds = ref(new Set());
 
     const {
@@ -203,6 +206,14 @@
             @manage-groups="emit('manage-groups')"
         />
 
+        <UnlockControls
+            ref="unlockControls"
+            :nodes="manualNodes"
+            :scope-nodes="sortableManualNodes"
+            :selected-node-ids="selectedNodeIds"
+            @results="unlockResults = $event"
+        />
+
         <BulkOperations
             :is-selection-mode="isSelectionMode"
             :is-all-selected="isAllSelected"
@@ -244,6 +255,8 @@
             :ping-results="pingResults"
             :pinging-nodes="pingingNodes"
             :compact-grid="compactGrid"
+            :unlock-results="unlockResults"
+            @unlock="unlockControls?.queueNode($event)"
             @ping="emit('ping', $event)"
             @move-to-top="handleMoveToTop"
         />
