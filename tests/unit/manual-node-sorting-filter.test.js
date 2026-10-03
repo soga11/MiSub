@@ -59,7 +59,6 @@ describe('manual node sorting filters', () => {
                 plugins: [createI18n({ initialLocale: 'zh-CN' })],
                 stubs: {
                     NodeActions: true,
-                    UnlockControls: true,
                     BulkOperations: true,
                     NodeTable: NodeTableProbe,
                 },

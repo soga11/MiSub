@@ -73,7 +73,6 @@ import { normalizeSubconverterBackend } from './subscription/main-handler.js';
 import { maybeRunScheduledTasks } from './scheduled-task-runner.js';
 import { handleExternalNodesCallbackRequest } from '../services/external-nodes-callback-service.js';
 import { handleExternalApiRequest } from './external-api-router.js';
-import { handleUnlockRequest } from './unlock-handler.js';
 
 // 常量定义
 const OLD_KV_KEY = 'misub_data_v1';
@@ -91,10 +90,6 @@ function isAuthDiagnosticsEnabled(env) {
 export async function handleApiRequest(request, env, context = null) {
     const url = new URL(request.url);
     const path = url.pathname.replace(/^\/api/, '');
-
-    if (path.startsWith('/unlock/runner/')) {
-        return handleUnlockRequest(request, env, { runner: true });
-    }
 
     if (path === '/external-nodes-callback') {
         return handleExternalNodesCallbackRequest(request, env);
@@ -323,10 +318,6 @@ export async function handleApiRequest(request, env, context = null) {
 
     if (!(await authMiddleware(request, env))) {
         return createJsonResponse({ error: 'Unauthorized' }, 401);
-    }
-
-    if (path.startsWith('/unlock/')) {
-        return handleUnlockRequest(request, env);
     }
 
     // Auth-only route for client management (POST, DELETE, etc.)

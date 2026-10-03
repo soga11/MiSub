@@ -27,7 +27,6 @@
         pingResults: { type: Object, default: () => ({}) },
         pingingNodes: { type: Object, default: () => new Set() },
         compactGrid: { type: Boolean, default: false },
-        unlockResults: { type: Object, default: () => ({}) },
     });
 
     const emit = defineEmits([
@@ -41,7 +40,6 @@
         'set-group-filter', // Added
         'ping',
         'move-to-top',
-        'unlock',
     ]);
 
     const draggableModel = computed({
@@ -97,8 +95,6 @@
                                 :is-selection-mode="isSelectionMode"
                                 :is-selected="selectedNodeIds.has(node.id)"
                                 :ping-result="pingResults[node.id]"
-                                :unlock-result="unlockResults[node.id]"
-                                @unlock="emit('unlock', node.id)"
                                 :is-pinging="pingingNodes.has(node.id)"
                                 @toggle-select="emit('toggle-select', node.id)"
                                 @edit="emit('edit', node.id)"
@@ -128,8 +124,6 @@
                                 class="list-item-animation"
                                 :style="{ '--delay-index': Math.min(index, 20) }"
                                 :ping-result="pingResults[node.id]"
-                                :unlock-result="unlockResults[node.id]"
-                                @unlock="emit('unlock', node.id)"
                                 :is-pinging="pingingNodes.has(node.id)"
                                 @edit="emit('edit', node.id)"
                                 @delete="emit('delete', node.id)"
@@ -165,8 +159,6 @@
                         :is-selection-mode="isSelectionMode"
                         :is-selected="selectedNodeIds.has(node.id)"
                         :ping-result="pingResults[node.id]"
-                        :unlock-result="unlockResults[node.id]"
-                        @unlock="emit('unlock', node.id)"
                         :is-pinging="pingingNodes.has(node.id)"
                         @toggle-select="emit('toggle-select', node.id)"
                         @edit="emit('edit', node.id)"
@@ -192,8 +184,6 @@
                     :is-selection-mode="isSelectionMode"
                     :is-selected="selectedNodeIds.has(node.id)"
                     :ping-result="pingResults[node.id]"
-                    :unlock-result="unlockResults[node.id]"
-                    @unlock="emit('unlock', node.id)"
                     :is-pinging="pingingNodes.has(node.id)"
                     @toggle-select="emit('toggle-select', node.id)"
                     @edit="emit('edit', node.id)"
