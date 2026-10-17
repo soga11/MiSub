@@ -48,7 +48,7 @@
                 {{ t('actions.bulkImport') }}
             </button>
         </div>
-        <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 md:mt-0 md:ml-auto">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 md:mt-0 md:ml-auto">
             {{ t('dashboard.dashboardHint') }}
         </p>
     </div>

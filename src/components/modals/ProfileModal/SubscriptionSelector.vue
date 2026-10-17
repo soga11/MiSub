@@ -90,10 +90,11 @@
                 type="text"
                 v-model="searchModel"
                 :placeholder="t('subscriptions.searchPlaceholder')"
-                class="w-full pl-9 pr-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full pl-9 pr-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-indigo-500 focus:border-indigo-500"
+                :aria-label="t('subscriptions.searchPlaceholder')"
             />
             <svg
-                class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+                class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -116,7 +117,7 @@
                         type="checkbox"
                         :checked="selectedIds.includes(sub.id)"
                         @change="emit('toggle-selection', sub.id)"
-                        class="h-4 w-4 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        class="h-4 w-4 rounded-sm border-gray-300 text-indigo-600 focus-visible:ring-indigo-500"
                     />
                     <span
                         class="text-sm text-gray-800 dark:text-gray-200 truncate"
@@ -152,7 +153,7 @@
                         class="flex items-center gap-2 px-2 py-1.5 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 shadow-xs"
                     >
                         <span
-                            class="drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            class="drag-handle cursor-grab active:cursor-grabbing text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                         >
                             <svg
                                 class="w-4 h-4"
@@ -180,8 +181,9 @@
                         </span>
                         <button
                             @click="emit('toggle-selection', element.id)"
-                            class="text-gray-400 hover:text-red-500 transition-colors"
+                            class="text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"
                             :title="t('profileModal.remove')"
+                            :aria-label="t('profileModal.remove')"
                         >
                             <svg
                                 class="w-4 h-4"

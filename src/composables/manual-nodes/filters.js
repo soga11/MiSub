@@ -1,4 +1,5 @@
 import { NODE_PROTOCOL_REGEX } from '@/constants/nodeProtocols.js';
+import { DEFAULT_GROUP_KEY } from './groups.js';
 
 export const countryCodeMap = {
     hk: ['🇭🇰', '香港', 'HK'],
@@ -64,16 +65,23 @@ export function isManualNodeEntry(item) {
     const trimmedUrl = item.url.trim();
     if (!trimmedUrl) return false;
 
-    if (/^https?:\/\//i.test(trimmedUrl)) return false;
+    if (!/^https?:\/\//i.test(trimmedUrl)) return NODE_PROTOCOL_REGEX.test(trimmedUrl);
 
-    return NODE_PROTOCOL_REGEX.test(trimmedUrl);
+    // HTTP(S) endpoints are manual proxy nodes only when the URI authority
+    // contains userinfo and a host:port. Plain HTTP(S) URLs remain subscriptions.
+    try {
+        const parsed = new URL(trimmedUrl);
+        return Boolean(parsed.username && parsed.password && parsed.hostname && parsed.port);
+    } catch {
+        return false;
+    }
 }
 
 export function filterManualNodes(nodes, searchTerm, activeColorFilter) {
     let filtered = nodes;
 
     if (activeColorFilter) {
-        if (activeColorFilter === '默认') {
+        if (activeColorFilter === DEFAULT_GROUP_KEY) {
             filtered = filtered.filter((n) => !n.group);
         } else {
             filtered = filtered.filter((n) => n.group === activeColorFilter);

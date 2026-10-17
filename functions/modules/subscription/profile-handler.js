@@ -7,7 +7,6 @@ import { runOperatorChain } from '../../utils/operator-runner.js';
 import { KV_KEY_SUBS, KV_KEY_PROFILES, KV_KEY_SETTINGS, DEFAULT_SETTINGS } from '../config.js';
 import { fetchSubscriptionNodes } from './node-fetcher.js';
 import { applyManualNodeName } from '../utils/node-cleaner.js';
-import { resolveProfileManualNodeIds } from '../utils/profile-node-selection.js';
 
 function ensureArray(data) {
     if (!data) return [];
@@ -124,50 +123,42 @@ export async function handleProfileMode(
         return createJsonResponse({ error: '订阅组不存在或已禁用' }, 404);
     }
 
-    const allSubscriptions =
-        profile.autoIncludeManualNodes === true ? await storageAdapter.getAllSubscriptions() : null;
-    const profileNodeIds = resolveProfileManualNodeIds(profile, allSubscriptions || []);
     const relatedIds = [
         ...(Array.isArray(profile.subscriptions)
             ? profile.subscriptions.map((item) => (typeof item === 'object' ? item.id : item))
             : []),
-        ...profileNodeIds,
+        ...(Array.isArray(profile.manualNodes) ? profile.manualNodes : []),
     ].filter(Boolean);
     const relatedSubs =
-        allSubscriptions || typeof storageAdapter.getSubscriptionsByIds !== 'function'
-            ? allSubscriptions || (await storageAdapter.get(KV_KEY_SUBS)) || []
-            : await storageAdapter.getSubscriptionsByIds(Array.from(new Set(relatedIds)));
+        typeof storageAdapter.getSubscriptionsByIds === 'function'
+            ? await storageAdapter.getSubscriptionsByIds(Array.from(new Set(relatedIds)))
+            : (await storageAdapter.get(KV_KEY_SUBS)) || [];
     const misubMap = new Map(relatedSubs.map((item) => [item.id, item]));
 
     const targetMisubs = [];
-
-    // 1. Add subscriptions in order defined by profile
-    const profileSubIds = profile.subscriptions || [];
-    if (Array.isArray(profileSubIds)) {
-        profileSubIds.forEach((id) => {
-            const sub = misubMap.get(id);
-            if (sub && sub.enabled && sub.url.startsWith('http')) {
-                targetMisubs.push(sub);
-            }
-        });
-    }
-
-    // 2. Add manual nodes in order defined by profile
-    profileNodeIds.forEach((id) => {
-        const node = misubMap.get(id);
-        if (node && node.enabled && !node.url.startsWith('http')) {
-            targetMisubs.push(node);
+    const profileSubIds = (profile.subscriptions || []).map((item) =>
+        typeof item === 'object' ? item.id : item
+    );
+    profileSubIds.forEach((id) => {
+        const sub = misubMap.get(id);
+        if (sub && sub.enabled && /^https?:\/\//i.test(sub.url)) {
+            targetMisubs.push(sub);
         }
     });
 
-    // 分离HTTP订阅和手工节点
-    const targetSubscriptions = targetMisubs.filter((item) => item.url.startsWith('http'));
-    const targetManualNodes = targetMisubs.filter((item) => !item.url.startsWith('http'));
+    const targetManualNodes = [];
+    const profileNodeIds = profile.manualNodes || [];
+    if (Array.isArray(profileNodeIds)) {
+        profileNodeIds.forEach((id) => {
+            const node = misubMap.get(id);
+            if (node && node.enabled) targetManualNodes.push(node);
+        });
+    }
 
-    // 处理手工节点（直接解析节点URL）
-    // 先将用户自定义名称写入 URL（与订阅生成流程保持一致），
-    // 确保 parseNodeInfo 和节点转换管道能基于正确名称工作
-    const manualNodeResults = targetManualNodes.map((node) => {
+    const targetSubscriptions = targetMisubs.filter((sub) => !/^https?:\/\/[^/?#]+:\d+(?:[/?#]|$)/i.test(sub.url));
+    const manualNodes = targetMisubs.filter((sub) => !targetSubscriptions.includes(sub));
+    // 处理手工节点（直接解析节点URL），并将用户自定义名称写入 URL。
+    const manualNodeResults = manualNodes.map((node) => {
         const customName = typeof node.name === 'string' ? node.name.trim() : '';
         const effectiveUrl = customName ? applyManualNodeName(node.url, customName) : node.url;
 

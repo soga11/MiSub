@@ -106,7 +106,7 @@
                 <Input
                     id="sub-edit-proxy"
                     v-model="editingSubscription.fetchProxy"
-                    placeholder="例如: https://my-proxy.vercel.app/api?url="
+                    :placeholder="t('subscriptions.proxyPlaceholder')"
                     class="font-mono text-sm flex-1"
                 />
                 <button

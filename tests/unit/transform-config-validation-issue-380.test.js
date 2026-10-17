@@ -1,5 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { beforeEach, describe, it, expect } from 'vitest';
 import { validateProfile } from '../../src/utils/validation-utils.js';
+import { messages } from '../../src/i18n/messages.js';
+import { setLocale } from '../../src/i18n/index.js';
+
+// 校验文案已 i18n，必须钉住语言（happy-dom 默认 en-US）
+beforeEach(() => setLocale('zh-CN'));
 
 describe('Issue #380: SubConverter 配置文件自定义无法使用', () => {
     it('应该允许 custom: 前缀的模板名称（不验证为 URL）', () => {
@@ -71,7 +76,9 @@ describe('Issue #380: SubConverter 配置文件自定义无法使用', () => {
 
         expect(result.isValid).toBe(false);
         expect(result.errors.transformConfig).toBeDefined();
-        expect(result.errors.transformConfig[0]).toContain('模板名称不能为空');
+        expect(result.errors.transformConfig[0]).toContain(
+            messages['zh-CN'].validation.templateNameEmpty
+        );
     });
 
     it('应该拒绝 custom: 后面只有空格的模板名称', () => {
@@ -86,7 +93,9 @@ describe('Issue #380: SubConverter 配置文件自定义无法使用', () => {
 
         expect(result.isValid).toBe(false);
         expect(result.errors.transformConfig).toBeDefined();
-        expect(result.errors.transformConfig[0]).toContain('模板名称不能为空');
+        expect(result.errors.transformConfig[0]).toContain(
+            messages['zh-CN'].validation.templateNameEmpty
+        );
     });
 
     it('应该拒绝 builtin: 后面为空的模板名称', () => {
@@ -101,6 +110,8 @@ describe('Issue #380: SubConverter 配置文件自定义无法使用', () => {
 
         expect(result.isValid).toBe(false);
         expect(result.errors.transformConfig).toBeDefined();
-        expect(result.errors.transformConfig[0]).toContain('模板名称不能为空');
+        expect(result.errors.transformConfig[0]).toContain(
+            messages['zh-CN'].validation.templateNameEmpty
+        );
     });
 });

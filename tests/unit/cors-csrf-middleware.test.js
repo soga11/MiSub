@@ -1,6 +1,29 @@
+import { readFileSync, readdirSync } from 'node:fs';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { handleApiRequest } from '../../functions/modules/api-router.js';
 import { corsMiddleware, csrfOriginMiddleware } from '../../functions/middleware/cors.js';
+
+const SRC_ROOT = path.resolve(process.cwd(), 'src');
+
+function collectSourceFiles(dir) {
+    const entries = readdirSync(dir, { withFileTypes: true });
+    const files = [];
+    for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            files.push(...collectSourceFiles(fullPath));
+        } else if (/\.(js|vue)$/.test(entry.name)) {
+            files.push(fullPath);
+        }
+    }
+    return files;
+}
+
+/** 去掉注释，避免文档里举例的头名把守卫喂饱 */
+function stripComments(source) {
+    return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
+}
 
 function createKv(initial = {}) {
     const values = new Map(Object.entries(initial));
@@ -103,5 +126,41 @@ describe('CORS and CSRF middleware hardening', () => {
         expect(bearerRequest.status).toBe(200);
         expect(cookieWithoutOrigin.status).toBe(403);
         expect(await cookieWithoutOrigin.text()).toContain('Origin Required');
+    });
+
+    it('预检放行前端实际发送的自定义请求头（跨域部署必需）', async () => {
+        const preflight = await corsMiddleware(
+            makeMiddlewareRequest('https://example.com/api/settings', {
+                method: 'OPTIONS',
+                origin: 'https://example.com',
+            }),
+            async () => new Response('should-not-run'),
+            { origins: ['https://example.com'], allowCredentials: true }
+        );
+        const allowed = (preflight.headers.get('Access-Control-Allow-Headers') || '')
+            .split(',')
+            .map((header) => header.trim().toLowerCase())
+            .filter(Boolean);
+
+        // 前端请求里以 `'X-xxx':` 形式出现的头才是请求头；
+        // 读响应头写的是 headers.get('X-xxx')，没有紧跟冒号，不会误收。
+        const sourceFiles = collectSourceFiles(SRC_ROOT);
+        const usedHeaders = new Set();
+        for (const file of sourceFiles) {
+            const code = stripComments(readFileSync(file, 'utf-8'));
+            for (const match of code.matchAll(/'((?:X|x)-[A-Za-z0-9-]+)'\s*:/g)) {
+                usedHeaders.add(match[1].toLowerCase());
+            }
+        }
+
+        // 护栏：目录改名 / 正则失效时不要静默通过
+        expect(sourceFiles.length).toBeGreaterThan(100);
+        expect(usedHeaders.size).toBeGreaterThan(0);
+        // 自检：谓词确实认得已知的头（防止「恒为空集所以通过」）
+        expect(usedHeaders.has('x-misub-save-scope')).toBe(true);
+
+        for (const header of usedHeaders) {
+            expect(allowed).toContain(header);
+        }
     });
 });

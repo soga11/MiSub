@@ -75,7 +75,6 @@ export function useProfiles(markDirty) {
             enabled: true,
             subscriptions: [],
             manualNodes: [],
-            autoIncludeManualNodes: false,
             customId: '',
             transformConfigMode: 'global',
             transformConfig: '',
@@ -103,8 +102,6 @@ export function useProfiles(markDirty) {
             if (!Array.isArray(editingProfile.value.operators)) {
                 editingProfile.value.operators = [];
             }
-            editingProfile.value.autoIncludeManualNodes =
-                editingProfile.value.autoIncludeManualNodes === true;
             showProfileModal.value = true;
         }
     };

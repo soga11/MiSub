@@ -55,7 +55,7 @@ describe('MiSub visual system regression', () => {
         const inputClasses = input.find('input').classes().join(' ');
         expect(inputClasses).toContain('dark:bg-white/[0.035]');
         expect(inputClasses).toContain('dark:border-white/10');
-        expect(inputClasses).toContain('focus:ring-primary-500/30');
+        expect(inputClasses).toContain('focus-visible:ring-primary-500/30');
 
         const modal = mount(FormModal, {
             props: { show: true, title: '编辑订阅' },

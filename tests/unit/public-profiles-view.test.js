@@ -265,4 +265,104 @@ describe('PublicProfilesView hero loading state', () => {
 
         expect(localStorage.getItem('misub:locale')).toBe('zh-CN');
     });
+
+    it.each([false, true])(
+        'shows a safe retryable API error for default/custom layout (custom=%s)',
+        async (custom) => {
+            api.get.mockImplementation((url) =>
+                url === '/api/public/profiles'
+                    ? Promise.resolve({
+                          success: false,
+                          message: 'SECRET server detail',
+                          config: custom ? { customPage: { enabled: true } } : {},
+                      })
+                    : Promise.resolve({ success: true, data: [] })
+            );
+            wrapper = mount(PublicProfilesView, {
+                global: {
+                    stubs: {
+                        ProfileGrid: true,
+                        BaseIcon: true,
+                        AnnouncementCard: true,
+                        GuestbookModal: true,
+                        QuickImportModal: true,
+                        NodePreviewModal: true,
+                        CustomPublicRenderer: { template: '<div><slot name="profiles" /></div>' },
+                    },
+                },
+            });
+            await flushPromises();
+            expect(wrapper.text()).toContain('Failed to load public profiles. Please try again.');
+            expect(wrapper.text()).not.toContain('SECRET');
+            expect(wrapper.find('button').text()).toContain('Retry');
+        }
+    );
+
+    it.each([false, true])(
+        'shows safe error on request exception and retries successfully (custom=%s)',
+        async (custom) => {
+            let attempts = 0;
+            api.get.mockImplementation((url) => {
+                if (url === '/api/public/profiles') {
+                    attempts += 1;
+                    if (attempts === 1) return Promise.reject(new Error('SECRET exception detail'));
+                    return Promise.resolve({
+                        success: true,
+                        data: [],
+                        config: custom ? { customPage: { enabled: true } } : {},
+                    });
+                }
+                return Promise.resolve({ success: true, data: [] });
+            });
+            wrapper = mount(PublicProfilesView, {
+                global: {
+                    stubs: {
+                        ProfileGrid: true,
+                        BaseIcon: true,
+                        AnnouncementCard: true,
+                        GuestbookModal: true,
+                        QuickImportModal: true,
+                        NodePreviewModal: true,
+                        CustomPublicRenderer: { template: '<div><slot name="profiles" /></div>' },
+                    },
+                },
+            });
+            await flushPromises();
+            expect(wrapper.text()).toContain('Failed to load public profiles. Please try again.');
+            expect(wrapper.text()).not.toContain('SECRET');
+            await wrapper.find('button').trigger('click');
+            await flushPromises();
+            expect(wrapper.text()).toContain('No public profiles available');
+        }
+    );
+
+    it.each([false, true])(
+        'shows explicit empty state after successful empty response (custom=%s)',
+        async (custom) => {
+            api.get.mockImplementation((url) =>
+                url === '/api/public/profiles'
+                    ? Promise.resolve({
+                          success: true,
+                          data: [],
+                          config: custom ? { customPage: { enabled: true } } : {},
+                      })
+                    : Promise.resolve({ success: true, data: [] })
+            );
+            wrapper = mount(PublicProfilesView, {
+                global: {
+                    stubs: {
+                        ProfileGrid: true,
+                        BaseIcon: true,
+                        AnnouncementCard: true,
+                        GuestbookModal: true,
+                        QuickImportModal: true,
+                        NodePreviewModal: true,
+                        CustomPublicRenderer: { template: '<div><slot name="profiles" /></div>' },
+                    },
+                },
+            });
+            await flushPromises();
+            expect(wrapper.text()).toContain('No public profiles available');
+        }
+    );
 });

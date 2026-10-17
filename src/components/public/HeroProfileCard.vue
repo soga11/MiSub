@@ -1,6 +1,9 @@
 <script setup>
     import QRCodeOverlay from './QRCodeOverlay.vue';
     import BaseIcon from '../ui/BaseIcon.vue';
+    import { useI18n } from '../../i18n/index.js';
+
+    const { t } = useI18n();
 
     const props = defineProps({
         profile: {
@@ -45,7 +48,7 @@
                     <div
                         class="inline-flex items-center gap-2 rounded-full bg-primary-100 px-3 py-1 text-xs font-bold uppercase tracking-wide text-primary-700 dark:bg-primary-500/20 dark:text-primary-300"
                     >
-                        <span>精选推荐</span>
+                        <span>{{ t('public.featured') }}</span>
                     </div>
 
                     <div class="flex items-center gap-4">
@@ -71,10 +74,7 @@
                     <p
                         class="text-gray-600 dark:text-gray-400 text-base leading-relaxed max-w-2xl mx-auto lg:mx-0"
                     >
-                        {{
-                            profile.description ||
-                            '该订阅组由管理员维护，可用于快速预览节点并一键导入到客户端。'
-                        }}
+                        {{ profile.description || t('public.heroDescription') }}
                     </p>
                 </div>
 
@@ -85,7 +85,7 @@
                         class="group flex w-full items-center justify-center rounded-lg bg-primary-600 px-6 py-3.5 font-semibold text-white transition-colors hover:bg-primary-700"
                     >
                         <BaseIcon :path="ICONS.import" className="mr-2 w-5 h-5" />
-                        一键导入
+                        {{ t('public.quickImport') }}
                     </button>
 
                     <div class="grid grid-cols-2 gap-3">
@@ -94,23 +94,25 @@
                             class="flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10"
                         >
                             <BaseIcon :path="ICONS.preview" className="w-4 h-4 mr-1" />
-                            预览
+                            {{ t('public.preview') }}
                         </button>
                         <button
                             @click="emit('copy-link', profile)"
                             class="flex items-center justify-center rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-white/10 dark:bg-white/5 dark:text-gray-200 dark:hover:bg-white/10"
                         >
                             <BaseIcon :path="ICONS.link" className="w-4 h-4 mr-1" />
-                            复制
+                            {{ t('actions.copy') }}
                         </button>
                     </div>
 
                     <button
                         @click="emit('toggle-qr', profile)"
-                        class="mt-1 flex items-center justify-center gap-2 cursor-pointer text-xs text-gray-400 hover:text-primary-500 transition-colors w-full bg-transparent border-0"
+                        class="mt-1 flex items-center justify-center gap-2 cursor-pointer text-xs text-gray-500 dark:text-gray-400 hover:text-primary-500 transition-colors w-full bg-transparent border-0"
                     >
                         <BaseIcon :path="ICONS.qr" className="w-4 h-4" />
-                        <span>{{ isQrExpanded ? '隐藏二维码' : '显示二维码' }}</span>
+                        <span>{{
+                            isQrExpanded ? t('actions.hideQrCode') : t('actions.showQrCode')
+                        }}</span>
                     </button>
                 </div>
             </div>

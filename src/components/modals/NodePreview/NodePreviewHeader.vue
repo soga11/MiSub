@@ -1,6 +1,9 @@
 /** * 节点预览头部组件 * @author MiSub Team */
 
 <script setup>
+    import { useI18n } from '../../../i18n/index.js';
+
+    const { t } = useI18n();
     defineProps({
         title: {
             type: String,
@@ -31,16 +34,20 @@
         <!-- 节点统计 -->
         <div class="flex items-center space-x-4">
             <div class="text-sm text-gray-500 dark:text-gray-400">
-                <span v-if="filteredNodes === totalNodes"> 共 {{ totalNodes }} 个节点 </span>
-                <span v-else> {{ filteredNodes }} / {{ totalNodes }} 个节点 </span>
+                <span v-if="filteredNodes === totalNodes">{{
+                    t('nodePreview.totalNodes', { count: totalNodes })
+                }}</span>
+                <span v-else>{{
+                    t('nodePreview.filteredOfTotal', { filtered: filteredNodes, total: totalNodes })
+                }}</span>
             </div>
 
             <!-- 关闭按钮 -->
             <button
                 @click="$emit('close')"
-                class="misub-radius-md bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 p-2"
+                class="misub-radius-md bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 p-2"
             >
-                <span class="sr-only">关闭</span>
+                <span class="sr-only">{{ t('common.close') }}</span>
                 <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                     <path
                         fill-rule="evenodd"

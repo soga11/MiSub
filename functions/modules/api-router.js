@@ -101,6 +101,9 @@ export async function handleApiRequest(request, env, context = null) {
 
     // [新增] 数据存储迁移接口 (KV -> D1)
     if (path === '/migrate_to_d1') {
+        if (request.method !== 'POST') {
+            return createJsonResponse({ error: 'Method Not Allowed' }, 405, { Allow: 'POST' });
+        }
         if (!(await authMiddleware(request, env))) {
             return createJsonResponse({ error: 'Unauthorized' }, 401);
         }
@@ -229,7 +232,7 @@ export async function handleApiRequest(request, env, context = null) {
     }
 
     if (path === '/public_config' || path === '/config') {
-        return await handlePublicConfig(env);
+        return await handlePublicConfig(request, env);
     }
 
     if (path === '/public/profiles') {
@@ -438,6 +441,23 @@ export async function handleApiRequest(request, env, context = null) {
 
         case '/node_count':
             return await handleLegacyNodeCountRequest(request, env);
+
+        case '/detect_airport_name': {
+            if (request.method !== 'POST') return createErrorResponse('Method Not Allowed', 405);
+            try {
+                const body = await readJsonWithLimit(request, JSON_BODY_LIMITS.normal);
+                const { inferAirportRootDomain, fetchAirportSiteTitle } =
+                    await import('../services/subscription-service.js');
+                const rootDomain = inferAirportRootDomain(body?.url || '');
+                if (!rootDomain) {
+                    return createJsonResponse({ success: true, name: '', rootDomain: '' });
+                }
+                const name = await fetchAirportSiteTitle(rootDomain, { timeout: 5000 });
+                return createJsonResponse({ success: true, name, rootDomain });
+            } catch (error) {
+                return createErrorResponse(`识别失败: ${error.message}`, 400);
+            }
+        }
 
         case '/nodes/health':
             return await handleHealthCheckRequest(request, env);

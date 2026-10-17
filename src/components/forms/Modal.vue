@@ -30,6 +30,11 @@
             type: String,
             default: '',
         },
+        confirmVariant: {
+            type: String,
+            default: 'primary',
+            validator: (value) => ['primary', 'danger'].includes(value),
+        },
     });
 
     const emit = defineEmits(['update:show', 'confirm']);
@@ -147,7 +152,7 @@
                         v-if="show"
                         ref="modalPanelRef"
                         tabindex="-1"
-                        class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl misub-radius-lg shadow-2xl w-full text-left ring-1 ring-black/5 dark:ring-white/10 flex flex-col max-h-[85vh] lg:max-h-[90vh] border border-white/20 dark:border-white/5 focus:outline-none"
+                        class="bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl misub-radius-lg shadow-2xl w-full text-left ring-1 ring-black/5 dark:ring-white/10 flex flex-col max-h-[85vh] lg:max-h-[90vh] border border-white/20 dark:border-white/5 focus-visible:outline-none"
                         :class="{
                             'max-w-sm': size === 'sm',
                             'max-w-md': size === 'md',
@@ -194,7 +199,12 @@
                                         (confirmKeyword && confirmInput !== confirmKeyword)
                                     "
                                     :title="confirmDisabled ? confirmTitle : t('actions.confirm')"
-                                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm misub-radius-lg transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    class="px-4 py-2 text-white font-semibold text-sm misub-radius-lg transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    :class="
+                                        confirmVariant === 'danger'
+                                            ? 'bg-red-600 hover:bg-red-700'
+                                            : 'bg-indigo-600 hover:bg-indigo-700'
+                                    "
                                 >
                                     {{ confirmLabel }}
                                 </button>

@@ -90,6 +90,7 @@
     ]);
 
     const selectedKeys = ref([]);
+    const selectedKeySet = computed(() => new Set(selectedKeys.value));
     const sortField = ref('');
     const sortOrder = ref(''); // 'asc', 'desc', ''
 
@@ -145,7 +146,7 @@
     // 选择相关方法
     const isRowSelected = (row) => {
         const key = row[props.rowKey];
-        return selectedKeys.value.includes(key);
+        return selectedKeySet.value.has(key);
     };
 
     const toggleRowSelection = (row) => {
@@ -161,7 +162,7 @@
         }
 
         const selectedRows = props.data.filter((row) =>
-            selectedKeys.value.includes(row[props.rowKey])
+            selectedKeySet.value.has(row[props.rowKey])
         );
 
         emit('update:selectedRows', selectedRows);
@@ -176,7 +177,7 @@
         }
 
         const selectedRows = props.data.filter((row) =>
-            selectedKeys.value.includes(row[props.rowKey])
+            selectedKeySet.value.has(row[props.rowKey])
         );
 
         emit('update:selectedRows', selectedRows);
@@ -243,8 +244,9 @@
                                         selectedKeys.length > 0 &&
                                         selectedKeys.length < paginatedData.length
                                     "
-                                    class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus-visible:ring-indigo-500"
                                     @change="toggleAllSelection"
+                                    :aria-label="t('actions.selectAllPage')"
                                 />
                             </th>
 
@@ -271,8 +273,9 @@
                                     <!-- 排序图标 -->
                                     <button
                                         v-if="column.sortable"
-                                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                        class="text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                                         @click="handleSort(column)"
+                                        :aria-label="t('common.sortColumn')"
                                     >
                                         <svg
                                             class="w-4 h-4"
@@ -300,7 +303,7 @@
                             >
                                 <div class="flex items-center justify-center space-x-2">
                                     <svg
-                                        class="animate-spin h-5 w-5 text-gray-400"
+                                        class="animate-spin h-5 w-5 text-gray-500 dark:text-gray-400"
                                         fill="none"
                                         viewBox="0 0 24 24"
                                     >
@@ -351,9 +354,10 @@
                                 <input
                                     type="checkbox"
                                     :checked="isRowSelected(row)"
-                                    class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                    class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus-visible:ring-indigo-500"
                                     @click.stop
                                     @change="toggleRowSelection(row)"
+                                    :aria-label="t('common.selectRow')"
                                 />
                             </td>
 

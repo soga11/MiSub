@@ -132,7 +132,7 @@
                     <div class="relative">
                         <select
                             v-model="settings.defaultPrefixSettings.enableManualNodes"
-                            class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent dark:border-gray-700 misub-radius-md py-2.5 px-4 text-xs text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all appearance-none"
+                            class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent dark:border-gray-700 misub-radius-md py-2.5 px-4 text-xs text-gray-900 dark:text-white focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:outline-none transition-all appearance-none"
                         >
                             <option
                                 v-for="option in prefixToggleOptions"
@@ -143,7 +143,7 @@
                             </option>
                         </select>
                         <div
-                            class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400"
+                            class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500 dark:text-gray-400"
                         >
                             <svg
                                 class="w-3.5 h-3.5"
@@ -166,7 +166,7 @@
                     <div class="relative">
                         <select
                             v-model="settings.defaultPrefixSettings.enableSubscriptions"
-                            class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent dark:border-gray-700 misub-radius-md py-2 px-4 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all appearance-none"
+                            class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent dark:border-gray-700 misub-radius-md py-2 px-4 text-sm text-gray-900 dark:text-white focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:outline-none transition-all appearance-none"
                         >
                             <option
                                 v-for="option in prefixToggleOptions"
@@ -177,7 +177,7 @@
                             </option>
                         </select>
                         <div
-                            class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400"
+                            class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500 dark:text-gray-400"
                         >
                             <svg
                                 class="w-3.5 h-3.5"
@@ -199,7 +199,7 @@
                     <div class="relative">
                         <select
                             v-model="settings.enableFlagEmoji"
-                            class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent dark:border-gray-700 misub-radius-md py-2 px-4 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all appearance-none"
+                            class="w-full bg-gray-50 dark:bg-gray-800 border border-transparent dark:border-gray-700 misub-radius-md py-2 px-4 text-sm text-gray-900 dark:text-white focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:outline-none transition-all appearance-none"
                         >
                             <option
                                 v-for="option in prefixToggleOptions"
@@ -210,7 +210,7 @@
                             </option>
                         </select>
                         <div
-                            class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-400"
+                            class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500 dark:text-gray-400"
                         >
                             <svg
                                 class="w-3.5 h-3.5"
@@ -298,7 +298,7 @@
                             @click="removeRegionOverride(index)"
                             class="w-full rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10"
                         >
-                            {{ t('common.delete') }}
+                            {{ t('actions.delete') }}
                         </button>
                     </div>
                 </div>

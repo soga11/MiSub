@@ -19,15 +19,15 @@
 
 ```json
 {
-  "externalApi": {
-    "enabled": true,
-    "tokens": [
-      {
-        "name": "default",
-        "token": "your-strong-random-token"
-      }
-    ]
-  }
+    "externalApi": {
+        "enabled": true,
+        "tokens": [
+            {
+                "name": "default",
+                "token": "your-strong-random-token"
+            }
+        ]
+    }
 }
 ```
 
@@ -35,11 +35,11 @@
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "forbidden",
-    "message": "External API is disabled"
-  }
+    "success": false,
+    "error": {
+        "code": "forbidden",
+        "message": "External API is disabled"
+    }
 }
 ```
 
@@ -47,11 +47,11 @@
 
 ```json
 {
-  "success": false,
-  "error": {
-    "code": "unauthorized",
-    "message": "Invalid or missing bearer token"
-  }
+    "success": false,
+    "error": {
+        "code": "unauthorized",
+        "message": "Invalid or missing bearer token"
+    }
 }
 ```
 
@@ -96,14 +96,14 @@ curl -s \
 
 ```json
 {
-  "success": true,
-  "data": [],
-  "meta": {
-    "page": 1,
-    "pageSize": 50,
-    "total": 0,
-    "requestId": "req_xxx"
-  }
+    "success": true,
+    "data": [],
+    "meta": {
+        "page": 1,
+        "pageSize": 50,
+        "total": 0,
+        "requestId": "req_xxx"
+    }
 }
 ```
 
@@ -133,7 +133,6 @@ curl -s \
 
 - 通过 `subscriptionIds` 引用远程订阅源
 - 通过 `manualNodeIds` 引用手动节点
-- 设置 `autoIncludeManualNodes: true` 后，自动包含当前及以后新增的全部手动节点
 
 profile 本身不直接内嵌完整资源内容，只维护引用关系。
 
@@ -236,8 +235,7 @@ curl -s -X POST \
     "description": "default profile",
     "target": "clash",
     "subscriptionIds": [],
-    "manualNodeIds": [],
-    "autoIncludeManualNodes": false
+    "manualNodeIds": []
   }' \
   "$MISUB_BASE_URL/profiles"
 ```

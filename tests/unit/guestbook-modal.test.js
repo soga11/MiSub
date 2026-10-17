@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import GuestbookModal from '../../src/components/modals/GuestbookModal.vue';
+import { setLocale } from '../../src/i18n/index.js';
 
 const { post } = vi.hoisted(() => ({
     post: vi.fn(),
@@ -14,6 +15,8 @@ vi.mock('../../src/lib/http.js', () => ({
 
 describe('GuestbookModal', () => {
     beforeEach(() => {
+        // 组件文案已接入 i18n，断言中文前先固定语言环境
+        setLocale('zh-CN');
         post.mockReset();
     });
 

@@ -51,20 +51,20 @@ KV 使用固定 key 存 JSON：
 D1 当前采用“行级 JSON”结构：
 
 - `subscriptions`
-  - `id TEXT PRIMARY KEY`
-  - `data TEXT NOT NULL`：单个订阅源或手动节点 JSON。
-  - `created_at DATETIME`
-  - `updated_at DATETIME`
+    - `id TEXT PRIMARY KEY`
+    - `data TEXT NOT NULL`：单个订阅源或手动节点 JSON。
+    - `created_at DATETIME`
+    - `updated_at DATETIME`
 - `profiles`
-  - `id TEXT PRIMARY KEY`
-  - `data TEXT NOT NULL`：单个订阅组 JSON。
-  - `created_at DATETIME`
-  - `updated_at DATETIME`
+    - `id TEXT PRIMARY KEY`
+    - `data TEXT NOT NULL`：单个订阅组 JSON。
+    - `created_at DATETIME`
+    - `updated_at DATETIME`
 - `settings`
-  - `key TEXT PRIMARY KEY`
-  - `value TEXT NOT NULL`：设置、下载计数、留言板、自定义规则模板等 JSON 或字符串值。
-  - `created_at DATETIME`
-  - `updated_at DATETIME`
+    - `key TEXT PRIMARY KEY`
+    - `value TEXT NOT NULL`：设置、下载计数、留言板、自定义规则模板等 JSON 或字符串值。
+    - `created_at DATETIME`
+    - `updated_at DATETIME`
 
 兼容点：
 
@@ -130,7 +130,6 @@ D1 当前采用“行级 JSON”结构：
 - `isPublic`：是否在公开页面展示。
 - `subscriptions`：订阅源 ID 列表；兼容对象数组，后端会取对象的 `id`。
 - `manualNodes`：手动节点 ID 列表。
-- `autoIncludeManualNodes`：是否动态包含当前全部手动节点；默认 `false`。开启后输出时忽略 `manualNodes` 的选择范围，并自动包含以后新增或批量导入的手动节点。
 - `sortIndex`：保存时按数组顺序写入。
 - `downloadCount`：展示用下载次数；读取时会从 `misub_profile_download_count_<id>` 叠加。
 - `expiresAt`：订阅组过期时间。
@@ -185,23 +184,23 @@ Profile 输出链路：
 节点与转换相关字段：
 
 - `defaultPrefixSettings`：默认前缀设置。
-  - `enableManualNodes`
-  - `enableSubscriptions`
-  - `manualNodePrefix`
-  - `subscriptionPrefix`
-  - `prependGroupName`
+    - `enableManualNodes`
+    - `enableSubscriptions`
+    - `manualNodePrefix`
+    - `subscriptionPrefix`
+    - `prependGroupName`
 - `defaultOperators`：全局默认操作符链。
 - `defaultNodeTransform`：旧版节点转换配置，已被 `defaultOperators` 取代但仍需兼容。
 - `nodeTransformPresets`：节点转换预设列表。
 - `subconverter`：订阅转换配置。
-  - `engineMode`
-  - `defaultBackend`
-  - `defaultOptions.udp`
-  - `defaultOptions.emoji`
-  - `defaultOptions.scv`
-  - `defaultOptions.tfo`
-  - `defaultOptions.sort`
-  - `defaultOptions.list`
+    - `engineMode`
+    - `defaultBackend`
+    - `defaultOptions.udp`
+    - `defaultOptions.emoji`
+    - `defaultOptions.scv`
+    - `defaultOptions.tfo`
+    - `defaultOptions.sort`
+    - `defaultOptions.list`
 
 页面与交互相关字段：
 
@@ -219,10 +218,10 @@ Profile 输出链路：
 - `maxSubscriptionConcurrency`
 - `defaultUserAgent`
 - `externalApi`
-  - `enabled`：是否启用 `/api/ext/v1/*` External Management API。
-  - `tokens[]`
-    - `name`：token 标签名。
-    - `token`：Bearer Token 明文。
+    - `enabled`：是否启用 `/api/ext/v1/*` External Management API。
+    - `tokens[]`
+        - `name`：token 标签名。
+        - `token`：Bearer Token 明文。
 - `isDefaultPassword`：只在 `GET /api/data` 返回时动态附加，不是持久设置字段。
 
 保存规则：

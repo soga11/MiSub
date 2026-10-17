@@ -215,6 +215,14 @@ export function resolveSafeDnsConfig(raw, options = {}) {
     dns['nameserver-policy'] = {
         'geosite:private': [...policy.domestic],
         'geosite:cn': [...policy.domestic],
+        ...options.subscriptionDnsPolicies?.reduce((acc, item) => {
+            if (item && item.policy && isObject(item.policy)) {
+                Object.assign(acc, item.policy);
+            } else if (item && item.domains && item.nameservers) {
+                acc[item.domains] = item.nameservers;
+            }
+            return acc;
+        }, {}),
         'geosite:geolocation-!cn': foreign.map((value) => withProxy(value, proxyGroup)),
     };
     dns['proxy-server-nameserver'] = [...policy.domestic];
@@ -263,8 +271,7 @@ function parseSingboxResolver(value, tag, detour) {
     const type = parsed.protocol.slice(0, -1);
     const server = parsed.hostname.replace(/^\[|\]$/g, '');
     const serverPort = Number(parsed.port) || (type === 'https' ? 443 : type === 'tls' ? 853 : 53);
-    const result = { tag, type, server, server_port: serverPort };
-    if (detour && detour !== 'DIRECT') result.detour = detour;
+    const result = { tag, type, server, server_port: serverPort, detour };
     if (type === 'https') result.path = parsed.pathname || '/dns-query';
     if (type === 'tls') result.tls = { enabled: true, server_name: server };
     return result;

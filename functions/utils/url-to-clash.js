@@ -95,6 +95,10 @@ function parseHostPort(hostPort) {
     }
 
     const parts = hostPort.split(':');
+    if (parts.length > 2 && parts[0] === '') {
+        const port = parseInt(parts[parts.length - 1]) || 443;
+        return { server: parts.slice(0, -1).join(':'), port };
+    }
     return {
         server: parts[0],
         port: parseInt(parts[1]) || 443,
@@ -124,6 +128,11 @@ function parseVlessUrl(url) {
             serverPart = serverPart.substring(0, queryIndex);
         } else if (hashIndex !== -1) {
             serverPart = serverPart.substring(0, hashIndex);
+        }
+
+        if (/^[0-9a-f:]+$/i.test(serverPart) && serverPart.split(':').length > 2) {
+            const lastColon = serverPart.lastIndexOf(':');
+            serverPart = `[${serverPart.slice(0, lastColon)}]:${serverPart.slice(lastColon + 1)}`;
         }
 
         const { server, port } = parseHostPort(serverPart);
@@ -264,6 +273,15 @@ function parseVlessUrl(url) {
             if (params.get('pbk')) realityOpts['public-key'] = params.get('pbk');
             if (params.get('sid')) realityOpts['short-id'] = params.get('sid');
             if (params.get('spx')) realityOpts['spider-x'] = params.get('spx');
+            const sxm =
+                params.get('support-x25519mlkem768') ||
+                params.get('support_x25519mlkem768') ||
+                params.get('sxm');
+            if (sxm === '0' || sxm === 'false') {
+                // 显式禁用
+            } else if (sxm === '1' || sxm === 'true') {
+                realityOpts['support-x25519mlkem768'] = true;
+            }
             if (Object.keys(realityOpts).length > 0) {
                 proxy['reality-opts'] = realityOpts;
             }
@@ -402,6 +420,28 @@ function parseTrojanUrl(url) {
         // [重要] dialer-proxy 链式代理
         if (params.get('dp')) {
             proxy['dialer-proxy'] = params.get('dp');
+        }
+
+        // Reality 配置 (支持 Trojan Reality)
+        const security = params.get('security');
+        if (security === 'reality') {
+            proxy.tls = true;
+            const realityOpts = {};
+            if (params.get('pbk')) realityOpts['public-key'] = params.get('pbk');
+            if (params.get('sid')) realityOpts['short-id'] = params.get('sid');
+            if (params.get('spx')) realityOpts['spider-x'] = params.get('spx');
+            const sxm =
+                params.get('support-x25519mlkem768') ||
+                params.get('support_x25519mlkem768') ||
+                params.get('sxm');
+            if (sxm === '0' || sxm === 'false') {
+                // 显式禁用
+            } else if (sxm === '1' || sxm === 'true') {
+                realityOpts['support-x25519mlkem768'] = true;
+            }
+            if (Object.keys(realityOpts).length > 0) {
+                proxy['reality-opts'] = realityOpts;
+            }
         }
 
         return proxy;
@@ -765,6 +805,7 @@ function parseHysteria2Url(url) {
         if (params.get('ports') || params.get('mport')) {
             proxy.ports = params.get('ports') || params.get('mport');
         }
+        if (params.get('hop-interval')) proxy['hop-interval'] = params.get('hop-interval');
         if (params.get('up')) proxy.up = params.get('up');
         if (params.get('down')) proxy.down = params.get('down');
         const fastOpen = params.get('fast_open') || params.get('fast-open');
@@ -1212,15 +1253,17 @@ function parseAnytlsUrl(url) {
  * @param {string} url - HTTPS URL
  * @returns {Object|null} Clash 代理对象
  */
-function parseHttpsUrl(url) {
+function parseHttpsUrl(url, isTls = true) {
     try {
         // https://username:password@server:port?params#name
-        const body = url.substring(8);
+        const body = url.substring(isTls ? 8 : 7);
         const atIndex = body.indexOf('@');
-        if (atIndex === -1) return null;
-
-        let userInfo = body.substring(0, atIndex);
-        let serverPart = body.substring(atIndex + 1);
+        let userInfo = '';
+        let serverPart = body;
+        if (atIndex !== -1) {
+            userInfo = body.substring(0, atIndex);
+            serverPart = body.substring(atIndex + 1);
+        }
 
         const queryIndex = serverPart.indexOf('?');
         const hashIndex = serverPart.indexOf('#');
@@ -1246,12 +1289,13 @@ function parseHttpsUrl(url) {
 
         const proxy = {
             name: name || `HTTPS-${server}`,
-            type: 'https',
+            type: 'http',
             server,
             port,
             username,
             password,
         };
+        if (isTls) proxy.tls = true;
 
         if (params.get('sni')) {
             proxy.servername = params.get('sni');
@@ -1444,6 +1488,33 @@ function parseSsdUrl(url) {
 export function urlToClashProxy(url) {
     if (!url || typeof url !== 'string') return null;
 
+    if (/^mierus:\/\//i.test(url)) {
+        try {
+            const body = url.slice(url.indexOf('//') + 2);
+            const hashIndex = body.indexOf('#');
+            const beforeHash = hashIndex < 0 ? body : body.slice(0, hashIndex);
+            const queryIndex = beforeHash.indexOf('?');
+            const authority = queryIndex < 0 ? beforeHash : beforeHash.slice(0, queryIndex);
+            const query = new URLSearchParams(queryIndex < 0 ? '' : beforeHash.slice(queryIndex + 1));
+            let server;
+            let port;
+            if (authority.startsWith('[')) {
+                const end = authority.indexOf(']');
+                server = authority.slice(1, end);
+                port = Number(authority.slice(end + 2));
+            } else {
+                const split = authority.lastIndexOf(':');
+                server = authority.slice(0, split);
+                port = Number(authority.slice(split + 1));
+            }
+            const proxy = { name: extractName(url) || `Mieru-${server}`, type: 'mieru', server, port };
+            for (const key of ['username', 'password', 'transport', 'handshake-mode', 'profile']) if (query.has(key)) proxy[key] = query.get(key);
+            for (const key of ['udp', 'multiplexing']) if (query.has(key)) proxy[key] = query.get(key) === 'true';
+            if (query.has('mtu')) proxy.mtu = Number(query.get('mtu'));
+            return proxy;
+        } catch { return null; }
+    }
+
     const lowerUrl = url.toLowerCase();
 
     if (lowerUrl.startsWith('vless://')) {
@@ -1470,6 +1541,8 @@ export function urlToClashProxy(url) {
         return parseAnytlsUrl(url);
     } else if (lowerUrl.startsWith('https://')) {
         return parseHttpsUrl(url);
+    } else if (lowerUrl.startsWith('http://')) {
+        return parseHttpsUrl(url, false);
     } else if (lowerUrl.startsWith('socks5://')) {
         return parseSocks5Url(url);
     }
@@ -1511,6 +1584,14 @@ export function urlsToClashProxies(urls, options = {}) {
             }
 
             if (options.skipCertVerify) proxy['skip-cert-verify'] = true;
+
+            if (options.supportX25519mlkem768 !== undefined && proxy['reality-opts']) {
+                if (options.supportX25519mlkem768) {
+                    proxy['reality-opts']['support-x25519mlkem768'] = true;
+                } else {
+                    delete proxy['reality-opts']['support-x25519mlkem768'];
+                }
+            }
 
             // [智能增强] 注入元数据
             proxy.metadata = extractNodeMetadata(proxy.name);

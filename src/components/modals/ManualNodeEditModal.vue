@@ -10,6 +10,7 @@
     import { useI18n } from '../../i18n/index.js';
     import { parseSurgeConfig } from '../../utils/protocolConverter.js';
     import { IMPORT_FILE_ACCEPT, readFilesAsText } from '../../utils/importFile.js';
+    import { buildAutoGroupName } from '../../utils/auto-group-name.js';
 
     const props = defineProps({
         show: Boolean,
@@ -59,6 +60,11 @@
                 fileCount > 1
                     ? t('manualNodes.fileImportPickedMulti', { count: fileCount })
                     : files[0].name;
+
+            // 自动填充分组名（用文件名），用户无需手填；已有分组时不覆盖
+            if (!(props.editingNode.group || '').trim()) {
+                props.editingNode.group = buildAutoGroupName({ fileName: files[0].name });
+            }
         } catch (error) {
             console.error('读取文件失败:', error);
             fileNameHint.value = error.message || t('manualNodes.fileImportFailed');
@@ -156,13 +162,13 @@
 
     const handleConfirm = () => {
         if (props.isNew && isMultiLine.value) {
-            // Pass group if specified (though bulk import logic might need update to support group, currently logic is simple)
-            // Actually handleBulkImport second arg was colorTag. Now it should be group.
-            // Let's check handleBulkImport usage.
-            // Line 107 in original: handleBulkImport(props.editingNode.url, props.editingNode.colorTag);
-            // Depending on useBulkImportLogic, we might need to update it too.
-            // For now, let's assume we pass group.
-            handleBulkImport(props.editingNode.url, props.editingNode.group);
+            // 多行批量导入：未填写分组时自动生成一个（用户无需手填）
+            let groupName = (props.editingNode.group || '').trim();
+            if (!groupName) {
+                groupName = buildAutoGroupName();
+                props.editingNode.group = groupName;
+            }
+            handleBulkImport(props.editingNode.url, groupName);
             emit('update:show', false);
             return;
         }
@@ -385,6 +391,7 @@
                                 class="hidden"
                                 :accept="fileAccept"
                                 @change="onFilePicked"
+                                aria-hidden="true"
                             />
                             <button
                                 type="button"
@@ -426,7 +433,7 @@
 
                         <div class="flex h-full">
                             <div
-                                class="py-3 pl-3 flex items-start text-gray-400 group-focus-within:text-primary-500 transition-colors pointer-events-none"
+                                class="py-3 pl-3 flex items-start text-gray-500 dark:text-gray-400 group-focus-within:text-primary-500 transition-colors pointer-events-none"
                             >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
@@ -450,7 +457,7 @@
                                 @focus="urlFocused = true"
                                 @blur="urlFocused = false"
                                 @input="$emit('input-url', $event)"
-                                class="flex-1 w-full bg-transparent border-0 focus:ring-0 dark:text-white placeholder-gray-400 text-sm font-mono resize-none py-3 pl-3 pr-20 min-h-[160px]"
+                                class="flex-1 w-full bg-transparent border-0 focus-visible:ring-0 dark:text-white placeholder-gray-400 text-sm font-mono resize-none py-3 pl-3 pr-20 min-h-[160px]"
                                 :placeholder="t('manualNodes.urlPlaceholder')"
                             ></textarea>
                         </div>
@@ -495,7 +502,9 @@
                             :key="idx"
                             class="flex items-center gap-3 px-3 py-2 border-b border-gray-100 dark:border-gray-700/50 last:border-b-0"
                         >
-                            <span class="text-xs text-gray-400 w-5 text-right">{{ idx + 1 }}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 w-5 text-right">{{
+                                idx + 1
+                            }}</span>
                             <span
                                 v-if="node.protocol"
                                 class="text-xs font-bold px-1.5 py-0.5 rounded shrink-0"
@@ -505,7 +514,7 @@
                             </span>
                             <span
                                 v-else
-                                class="text-xs text-gray-400 px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 shrink-0"
+                                class="text-xs text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 shrink-0"
                             >
                                 {{ t('manualNodes.unknownProtocol') }}
                             </span>

@@ -1,12 +1,18 @@
 <script setup>
     import { ref } from 'vue';
+    import { useI18n } from '../../i18n/index.js';
     import Button from '../ui/Button.vue';
+
+    const { t } = useI18n();
 
     const emit = defineEmits(['success']);
     const password = ref('');
     const isLoading = ref(false);
     const error = ref('');
     const showPassword = ref(false);
+    // 伪装开启时 /logo.png 对未鉴权请求会被服务端有意 404（指纹防护），
+    // 这里降级为内联图标，避免登录页出现「图片损坏」占位符。
+    const logoFailed = ref(false);
 
     const props = defineProps({
         login: Function,
@@ -14,7 +20,7 @@
 
     const submitLogin = async () => {
         if (!password.value) {
-            error.value = '请输入密码';
+            error.value = t('login.passwordRequired');
             return;
         }
         isLoading.value = true;
@@ -22,7 +28,7 @@
         try {
             await props.login(password.value);
         } catch (err) {
-            error.value = err.message || '发生未知错误';
+            error.value = err.message || t('login.unknownError');
         } finally {
             isLoading.value = false;
         }
@@ -40,12 +46,31 @@
                         class="w-full h-full flex items-center justify-center relative z-10 animate-float-slow"
                     >
                         <img
+                            v-if="!logoFailed"
                             width="96"
                             height="96"
                             src="/logo.png"
                             alt="MiSub"
                             class="drop-shadow-2xl"
+                            @error="logoFailed = true"
                         />
+                        <svg
+                            v-else
+                            width="96"
+                            height="96"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            class="text-primary-500 drop-shadow-2xl"
+                            aria-hidden="true"
+                        >
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M3.6 9h16.8M3.6 15h16.8" />
+                            <path d="M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" />
+                        </svg>
                     </div>
                 </div>
 
@@ -53,10 +78,10 @@
                     <h1
                         class="text-3xl font-bold text-gray-900 dark:text-white mb-2 tracking-tight"
                     >
-                        欢迎回来
+                        {{ t('login.welcomeBack') }}
                     </h1>
                     <p class="text-base text-gray-500 dark:text-gray-400 font-medium">
-                        请验证您的管理员身份
+                        {{ t('login.verifyIdentity') }}
                     </p>
                 </div>
             </div>
@@ -68,7 +93,7 @@
                         :class="
                             error
                                 ? 'text-red-500'
-                                : 'text-gray-400 group-focus-within:text-primary-500'
+                                : 'text-gray-500 dark:text-gray-400 group-focus-within:text-primary-500'
                         "
                     >
                         <svg
@@ -102,21 +127,24 @@
                         v-model="password"
                         @input="error = ''"
                         :type="showPassword ? 'text' : 'password'"
-                        placeholder="管理员密码 / 访问凭证"
+                        :placeholder="t('login.passwordPlaceholder')"
                         autocomplete="current-password"
                         :disabled="isLoading"
                         class="w-full bg-transparent border misub-radius-lg py-3.5 pl-11 pr-12 outline-none transition-all duration-300 disabled:opacity-50"
                         :class="[
                             error
-                                ? 'border-red-500 text-red-500 placeholder-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-500/50'
-                                : 'border-gray-200 dark:border-white/20 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:border-primary-500 dark:focus:border-primary-400 focus:ring-1 focus:ring-primary-500/50 dark:focus:ring-primary-400/50',
+                                ? 'border-red-500 text-red-500 placeholder-red-300 focus:border-red-500 focus-visible:ring-1 focus-visible:ring-red-500/50'
+                                : 'border-gray-200 dark:border-white/20 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:border-primary-500 dark:focus:border-primary-400 focus-visible:ring-1 focus-visible:ring-primary-500/50 dark:focus-visible:ring-primary-400/50',
                         ]"
+                        :aria-label="t('login.passwordPlaceholder')"
                     />
                     <button
                         type="button"
                         @click="showPassword = !showPassword"
-                        class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/50 rounded-r-[1rem]"
-                        :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+                        class="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50 rounded-r-[1rem]"
+                        :aria-label="
+                            showPassword ? t('login.hidePassword') : t('login.showPassword')
+                        "
                     >
                         <svg
                             v-if="showPassword"
@@ -167,10 +195,10 @@
                     size="lg"
                 >
                     <template v-if="!isLoading">
-                        <span class="relative z-10">授权登录</span>
+                        <span class="relative z-10">{{ t('login.authorizeLogin') }}</span>
                     </template>
                     <template v-else>
-                        <span>验证中...</span>
+                        <span>{{ t('login.verifying') }}</span>
                     </template>
                 </Button>
             </form>
@@ -193,7 +221,7 @@
                         clip-rule="evenodd"
                     />
                 </svg>
-                返回首页
+                {{ t('login.backHome') }}
             </a>
         </div>
     </div>

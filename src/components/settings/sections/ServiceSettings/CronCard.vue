@@ -86,7 +86,7 @@
                 type="text"
                 v-model="settings.cronSecret"
                 :placeholder="t('settings.cronSecretPlaceholder')"
-                class="block w-full px-3 py-2.5 bg-white/70 dark:bg-gray-900/50 border border-gray-200/80 dark:border-white/10 misub-radius-lg shadow-sm focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 sm:text-sm dark:text-white transition-colors"
+                class="block w-full px-3 py-2.5 bg-white/70 dark:bg-gray-900/50 border border-gray-200/80 dark:border-white/10 misub-radius-lg shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500/40 focus:border-blue-500 sm:text-sm dark:text-white transition-colors"
             />
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 {{ t('settings.cronSecretHint') }}
@@ -105,11 +105,13 @@
                         :value="cronUrl"
                         readonly
                         class="flex-1 block w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-l-xl sm:text-sm dark:text-white font-mono text-xs"
+                        :aria-label="t('settings.cronCompatibleUrl')"
                     />
                     <button
                         @click="copyCronUrl"
                         type="button"
-                        class="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-xl bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-hidden"
+                        class="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-xl bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 focus-visible:outline-hidden"
+                        :aria-label="t('actions.copy')"
                     >
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path
@@ -145,6 +147,7 @@
                     :value="cronHeaderCommand"
                     readonly
                     class="block w-full px-3 py-2 bg-white/70 dark:bg-gray-950/40 border border-blue-100 dark:border-blue-800/70 rounded-lg text-xs font-mono text-gray-700 dark:text-gray-200"
+                    :aria-label="t('settings.cronCommandLabel')"
                 />
             </div>
         </div>

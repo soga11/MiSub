@@ -3,6 +3,7 @@
     import { api } from '../../../lib/http.js';
     import { useToastStore } from '../../../stores/toast.js';
     import { useI18n } from '../../../i18n/index.js';
+    import { confirmAction } from '../../../composables/useConfirm.js';
     import Input from '../../ui/Input.vue';
 
     const props = defineProps({
@@ -62,7 +63,10 @@
 
     const runBackup = async () => {
         const config = ensureConfig();
-        if (!confirm(t('settings.webdavRunBackupConfirm'))) return;
+        const confirmed = await confirmAction({
+            message: t('settings.webdavRunBackupConfirm'),
+        });
+        if (!confirmed) return;
         isBackingUp.value = true;
         try {
             const result = await api.post('/api/backup/webdav/run', { scope: config.backupScope });
@@ -100,7 +104,11 @@
                         scope === 'dataAndSettings'
                             ? t('settings.webdavScopeDataAndSettings')
                             : t('settings.webdavScopeDataOnly');
-                    if (!confirm(t('settings.webdavRestoreLocalConfirm', { scope: label }))) return;
+                    const confirmed = await confirmAction({
+                        message: t('settings.webdavRestoreLocalConfirm', { scope: label }),
+                        variant: 'danger',
+                    });
+                    if (!confirmed) return;
                     const result = await api.post('/api/backup/restore', { payload, scope });
                     if (!result.success)
                         throw new Error(result.message || t('settings.webdavRestoreFailed'));
@@ -143,7 +151,11 @@
 
     const restoreRemoteFile = async (file) => {
         if (!file?.path) return;
-        if (!confirm(t('settings.webdavRestoreRemoteConfirm', { name: file.name }))) return;
+        const confirmed = await confirmAction({
+            message: t('settings.webdavRestoreRemoteConfirm', { name: file.name }),
+            variant: 'danger',
+        });
+        if (!confirmed) return;
         isRestoring.value = true;
         try {
             const result = await api.post('/api/backup/webdav/restore', { file: file.path });

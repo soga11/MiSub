@@ -14,7 +14,17 @@ export async function corsMiddleware(request, next, options = {}) {
     const {
         origins = [],
         methods = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-        headers = ['Content-Type', 'Authorization', 'X-Requested-With'],
+        // 自定义请求头必须列在这里，否则跨域部署（CORS_ORIGINS 指向独立前端）
+        // 时浏览器预检会失败，请求根本发不出去。
+        // 与 src/ 下实际发送的头保持一致，tests/unit/cors-csrf-middleware.test.js
+        // 里有一条守卫会扫描源码比对。
+        headers = [
+            'Content-Type',
+            'Authorization',
+            'X-Requested-With',
+            'X-MiSub-Path',
+            'X-MiSub-Save-Scope',
+        ],
         maxAge = 86400, // 24小时
         allowCredentials = true,
     } = options;

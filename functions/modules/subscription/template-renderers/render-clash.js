@@ -2,6 +2,7 @@ import yaml from 'js-yaml';
 import { clashFix } from '../../../utils/format-utils.js';
 import { normalizeUnifiedTemplateModel } from '../template-model.js';
 import { DNS_PROXY_GROUP, resolveSafeDnsConfig } from '../safe-dns.js';
+import { applyMihomoChainProxy } from '../mihomo-chain-proxy.js';
 
 function mapGroupType(type) {
     const normalized = String(type || '')
@@ -77,40 +78,59 @@ function toClashRuleProviderUrl(sourceUrl) {
 
     try {
         const url = new URL(sourceUrl);
-        if (!/raw\.githubusercontent\.com$/i.test(url.hostname)) return sourceUrl;
-        const pathParts = url.pathname.split('/').filter(Boolean);
+        // 兼容已被 CDN 镜像重写过的地址（cdn.jsdelivr.net/gh/OWNER/REPO@REF/PATH）。
+        // 若只认 raw.githubusercontent.com，镜像后的链接会跳过 .list -> .yaml 映射，
+        // 导致规则源指向不存在的 provider 文件。
+        const mirrorMatch =
+            url.hostname === 'cdn.jsdelivr.net'
+                ? url.pathname.match(/^\/gh\/([^/@]+)\/([^/@]+)@([^/]+)\/(.+)$/)
+                : null;
+        const pathParts = mirrorMatch
+            ? [mirrorMatch[1], mirrorMatch[2], mirrorMatch[3], ...mirrorMatch[4].split('/')]
+            : url.pathname.split('/').filter(Boolean);
+
+        const isGithubRaw = /raw\.githubusercontent\.com$/i.test(url.hostname);
+        if (!isGithubRaw && !mirrorMatch) return sourceUrl;
+
         const owner = pathParts[0] || '';
         const repo = pathParts[1] || '';
         if (owner.toLowerCase() !== 'acl4ssr' || repo.toLowerCase() !== 'acl4ssr') return sourceUrl;
-        if (!/\/Clash\/.*\.(list|txt)$/i.test(url.pathname)) return sourceUrl;
+
+        // 统一以「仓库内路径」为基准判断与改写，避免镜像前缀干扰
+        const repoPath = '/' + pathParts.slice(3).join('/');
+        if (!/\/Clash\/.*\.(list|txt)$/i.test(repoPath)) return sourceUrl;
 
         const fileName =
-            url.pathname
+            repoPath
                 .split('/')
                 .pop()
                 ?.replace(/\.(list|txt)$/i, '') || '';
         if (
-            /\/Clash\/[^/]+\.(list|txt)$/i.test(url.pathname) &&
+            /\/Clash\/[^/]+\.(list|txt)$/i.test(repoPath) &&
             ACL4SSR_ROOT_LIST_ONLY_FILES.has(fileName.toLowerCase())
         ) {
             return sourceUrl;
         }
 
-        if (/\/Clash\/Ruleset\//i.test(url.pathname)) {
-            url.pathname = url.pathname
+        let newPath;
+        if (/\/Clash\/Ruleset\//i.test(repoPath)) {
+            newPath = repoPath
                 .replace(/\/Clash\/Ruleset\//i, '/Clash/Providers/Ruleset/')
                 .replace(/\.(list|txt)$/i, '.yaml');
         } else if (ACL4SSR_ROOT_PROVIDER_FILES.has(fileName.toLowerCase())) {
-            url.pathname = url.pathname
+            newPath = repoPath
                 .replace(/\/Clash\//i, '/Clash/Providers/')
                 .replace(/\.(list|txt)$/i, '.yaml');
         } else {
-            url.pathname = url.pathname
+            newPath = repoPath
                 .replace(/\/Clash\//i, '/Clash/Providers/Ruleset/')
                 .replace(/\.(list|txt)$/i, '.yaml');
         }
 
-        return url.toString();
+        if (mirrorMatch) {
+            return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${mirrorMatch[3]}${newPath}`;
+        }
+        return `https://raw.githubusercontent.com/${owner}/${repo}/${pathParts[2]}${newPath}`;
     } catch {
         return sourceUrl;
     }
@@ -144,6 +164,13 @@ function mapRule(rule, ruleProviderMap) {
 
 export function renderClashFromTemplateModel(model) {
     const normalizedModel = normalizeUnifiedTemplateModel(model);
+
+    // 所有客户端都保留链式策略组；仅 Mihomo/Meta 展开节点级 dialer-proxy。
+    if (Array.isArray(normalizedModel.extras?.chainProxy)) {
+        applyMihomoChainProxy(normalizedModel, {
+            enableDialerProxy: Boolean(normalizedModel.meta?.isMeta),
+        });
+    }
 
     const ruleProviders = {};
     const ruleProviderMap = new Map();

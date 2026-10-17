@@ -35,7 +35,9 @@
         },
         ariaLabel: {
             type: String,
-            default: '',
+            // 默认 undefined：空字符串会渲染出 aria-label=""，
+            // 反而覆盖按钮自身的文本内容，使读屏软件读不出按钮名。
+            default: undefined,
         },
     });
 
@@ -85,7 +87,7 @@
         :disabled="disabled || loading"
         :aria-label="ariaLabel"
         @click="handleClick"
-        class="relative inline-flex items-center justify-center rounded-[var(--misub-radius-md)] font-medium tap-effect disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden group tracking-normal transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+        class="relative inline-flex items-center justify-center rounded-[var(--misub-radius-md)] font-medium tap-effect disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden group tracking-normal transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
         :class="[variantClasses, sizeClasses]"
     >
         <svg

@@ -186,9 +186,10 @@
 <template>
     <div class="space-y-3">
         <div class="flex items-center justify-between">
-            <label class="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{{
-                t('operators.sortWeights')
-            }}</label>
+            <label
+                class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight"
+                >{{ t('operators.sortWeights') }}</label
+            >
             <button @click="addKey" class="text-[10px] text-indigo-600 font-bold">
                 + {{ t('operators.addCondition') }}
             </button>
@@ -204,8 +205,9 @@
                     <div class="flex flex-col">
                         <button
                             @click="moveKey(idx, -1)"
-                            class="text-gray-300 hover:text-indigo-500 disabled:opacity-20"
+                            class="text-gray-500 dark:text-gray-400 hover:text-indigo-500 disabled:opacity-20"
                             :disabled="idx === 0"
+                            :aria-label="t('actions.moveUp')"
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -219,8 +221,9 @@
                         </button>
                         <button
                             @click="moveKey(idx, 1)"
-                            class="text-gray-300 hover:text-indigo-500 disabled:opacity-20"
+                            class="text-gray-500 dark:text-gray-400 hover:text-indigo-500 disabled:opacity-20"
                             :disabled="idx === params.keys.length - 1"
+                            :aria-label="t('actions.moveDown')"
                         >
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -237,7 +240,7 @@
                     <select
                         :value="item.key"
                         @change="updateKeyField(idx, 'key', $event.target.value)"
-                        class="flex-1 bg-transparent border-none p-0 text-[11px] font-medium text-gray-900 dark:text-gray-100 focus:ring-0 outline-none"
+                        class="flex-1 bg-transparent border-none p-0 text-[11px] font-medium text-gray-900 dark:text-gray-100 focus-visible:ring-0 outline-none"
                     >
                         <option
                             v-for="k in availableKeys"
@@ -252,7 +255,7 @@
                     <select
                         :value="item.order"
                         @change="updateKeyField(idx, 'order', $event.target.value)"
-                        class="w-14 bg-transparent border-none p-0 text-[11px] text-gray-600 dark:text-gray-300 focus:ring-0 outline-none"
+                        class="w-14 bg-transparent border-none p-0 text-[11px] text-gray-600 dark:text-gray-300 focus-visible:ring-0 outline-none"
                     >
                         <option
                             value="asc"
@@ -268,7 +271,11 @@
                         </option>
                     </select>
 
-                    <button @click="removeKey(idx)" class="p-1 text-gray-300 hover:text-rose-500">
+                    <button
+                        @click="removeKey(idx)"
+                        class="p-1 text-gray-500 dark:text-gray-400 hover:text-rose-500 touch-target"
+                        :aria-label="t('operators.removeSortKey')"
+                    >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             class="h-3.5 w-3.5"
@@ -288,7 +295,7 @@
                 >
                     <div class="flex items-center justify-between text-[10px]">
                         <span
-                            class="font-bold text-gray-400 dark:text-gray-500 uppercase tracking-tight flex items-center gap-1"
+                            class="font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight flex items-center gap-1"
                         >
                             {{
                                 t('operators.customPriorityOrder', {
@@ -327,7 +334,7 @@
 
                     <div
                         v-if="!(item.customOrder || []).length"
-                        class="text-[9px] text-gray-400 italic"
+                        class="text-[9px] text-gray-500 dark:text-gray-400 italic"
                     >
                         {{ t('operators.emptyPriorityItems') }}
                     </div>
@@ -336,11 +343,11 @@
 
             <div
                 v-if="params.keys.length === 0"
-                class="text-center py-2 text-[10px] text-gray-400 italic"
+                class="text-center py-2 text-[10px] text-gray-500 dark:text-gray-400 italic"
             >
                 {{ t('operators.emptySortConditions') }}
             </div>
         </div>
-        <p class="text-[10px] text-gray-400">{{ t('operators.sortHint') }}</p>
+        <p class="text-[10px] text-gray-500 dark:text-gray-400">{{ t('operators.sortHint') }}</p>
     </div>
 </template>

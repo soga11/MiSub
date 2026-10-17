@@ -8,9 +8,7 @@ import { normalizeManualNodeGroupName } from './manual-nodes/groups.js';
 import { parseSurgeConfig } from '../utils/protocolConverter.js';
 import { t } from '../i18n/index.js';
 
-const BULK_IMPORT_NODE_PROTOCOLS = COMMON_NODE_PROTOCOLS.filter(
-    (protocol) => protocol !== 'http' && protocol !== 'https'
-);
+const BULK_IMPORT_NODE_PROTOCOLS = COMMON_NODE_PROTOCOLS;
 const BULK_IMPORT_NODE_REGEX = createProtocolRegex(BULK_IMPORT_NODE_PROTOCOLS, false);
 
 export function useBulkImportLogic({ addSubscriptionsFromBulk, addNodesFromBulk }) {
@@ -74,7 +72,7 @@ export function useBulkImportLogic({ addSubscriptionsFromBulk, addNodesFromBulk 
                 notes: '',
             };
 
-            if (/^https?:\/\//.test(line)) {
+            if (/^https?:\/\//.test(line) && !BULK_IMPORT_NODE_REGEX.test(line)) {
                 // 去重检查：订阅 URL
                 if (!existingUrls.has(line)) {
                     validSubs.push({ ...baseItem, id: generateSubscriptionId() });
@@ -97,7 +95,7 @@ export function useBulkImportLogic({ addSubscriptionsFromBulk, addNodesFromBulk 
         }
 
         if (validNodes.length > 0) {
-            addNodesFromBulk(validNodes);
+            addNodesFromBulk(validNodes, normalizedGroup);
             message += t('bulkImport.importedNodes', { count: validNodes.length });
         }
 

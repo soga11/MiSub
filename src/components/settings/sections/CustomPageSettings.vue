@@ -2,6 +2,7 @@
     import { computed } from 'vue';
     import { parseCustomPageSource } from '../../../utils/custom-page-source.js';
     import { useI18n } from '../../../i18n/index.js';
+    import { confirmAction } from '../../../composables/useConfirm.js';
     import Switch from '../../ui/Switch.vue';
 
     const { t } = useI18n();
@@ -101,8 +102,11 @@
         },
     ];
 
-    const applyTemplate = (tpl) => {
-        if (confirm(t('settings.customPageApplyConfirm', { name: t(tpl.nameKey) }))) {
+    const applyTemplate = async (tpl) => {
+        const confirmed = await confirmAction({
+            message: t('settings.customPageApplyConfirm', { name: t(tpl.nameKey) }),
+        });
+        if (confirmed) {
             const parsed = parseCustomPageSource(tpl.content, tpl.css || '');
             props.settings.customPage.type = 'html';
             props.settings.customPage.content = parsed.html;
@@ -290,8 +294,12 @@
                         <textarea
                             v-model="props.settings.customPage.content"
                             rows="12"
-                            class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 font-mono text-sm leading-relaxed outline-none transition-all"
-                            placeholder="支持直接粘贴整份 HTML 源码，点击「{{ t('settings.customPageNormalizeSource') }}」可自动提取 CSS。"
+                            class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus-visible:ring-2 focus-visible:ring-primary-500 font-mono text-sm leading-relaxed outline-none transition-all"
+                            :placeholder="
+                                t('settings.customPageSourcePlaceholder', {
+                                    action: t('settings.customPageNormalizeSource'),
+                                })
+                            "
                         />
                     </div>
 
@@ -303,8 +311,12 @@
                         <textarea
                             v-model="props.settings.customPage.css"
                             rows="6"
-                            class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 font-mono text-sm leading-relaxed outline-none transition-all"
-                            placeholder="请输入{{ t('settings.customPageCss') }} 样式..."
+                            class="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus-visible:ring-2 focus-visible:ring-primary-500 font-mono text-sm leading-relaxed outline-none transition-all"
+                            :placeholder="
+                                t('settings.customPageCssPlaceholder', {
+                                    name: t('settings.customPageCss'),
+                                })
+                            "
                         />
                     </div>
                 </div>

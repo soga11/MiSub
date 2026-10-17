@@ -25,7 +25,7 @@
             </div>
 
             <h1 class="text-3xl font-bold mb-4 tracking-tight">{{ t('notFound.title') }}</h1>
-            <p class="text-lg text-gray-400 mb-10 leading-relaxed">
+            <p class="text-lg text-gray-500 dark:text-gray-400 mb-10 leading-relaxed">
                 {{ t('notFound.description') }}<br />
                 {{ t('notFound.loginHint') }}
             </p>

@@ -128,12 +128,15 @@
                 :value="modelValue"
                 type="text"
                 :placeholder="placeholder"
-                class="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 misub-radius-lg focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-all h-[42px] dark:text-white placeholder-gray-400"
+                class="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 misub-radius-lg focus-visible:ring-1 focus-visible:ring-indigo-500 focus:border-indigo-500 text-sm transition-all h-[42px] dark:text-white placeholder-gray-400"
                 @input="handleInput"
                 @focus="handleFocus"
                 @keydown.enter="isOpen = false"
+                :aria-label="placeholder"
             />
-            <div class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+            <div
+                class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 pointer-events-none"
+            >
                 <slot name="icon">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -154,7 +157,7 @@
             <!-- Arrow Icon -->
             <div
                 data-testid="group-selector-toggle"
-                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 cursor-pointer transition-transform duration-200 hover:text-gray-600 dark:hover:text-gray-300"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 cursor-pointer transition-transform duration-200 hover:text-gray-600 dark:hover:text-gray-300"
                 :class="{ 'rotate-180': isOpen }"
                 @click.stop="toggleDropdown"
             >

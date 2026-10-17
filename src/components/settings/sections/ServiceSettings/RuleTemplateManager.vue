@@ -173,7 +173,9 @@ overwrite_original_rules=true`;
             <p class="text-sm font-medium text-gray-600 dark:text-gray-300">
                 {{ t('settings.ruleTemplatesEmpty') }}
             </p>
-            <p class="mt-1 text-xs text-gray-400">{{ t('settings.ruleTemplatesEmptyHint') }}</p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ t('settings.ruleTemplatesEmptyHint') }}
+            </p>
         </div>
 
         <div v-else class="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[240px_1fr]">
@@ -256,7 +258,7 @@ overwrite_original_rules=true`;
                         <input
                             v-model="selectedTemplate.enabled"
                             type="checkbox"
-                            class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                            class="h-4 w-4 rounded border-gray-300 text-emerald-600 focus-visible:ring-emerald-500"
                         />
                         {{ t('settings.ruleTemplateEnabled') }}
                     </label>

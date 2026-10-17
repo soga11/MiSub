@@ -264,7 +264,7 @@
                     <button
                         v-if="collapsible"
                         type="button"
-                        class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                        class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                         @click="toggleCollapse"
                         :aria-expanded="!isCollapsed"
                         :aria-label="t('common.expandFilters')"
@@ -335,8 +335,9 @@
                             :placeholder="filter.placeholder"
                             :value="filterValue(filter)"
                             :disabled="loading || filter.disabled"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 misub-radius-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 misub-radius-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus-visible:ring-2 focus-visible:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
                             @input="handleFilterChange(filter, $event.target.value)"
+                            :aria-label="filter.label || filter.placeholder"
                         />
 
                         <!-- 数字输入 -->
@@ -349,8 +350,9 @@
                             :min="filter.min"
                             :max="filter.max"
                             :step="filter.step"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 misub-radius-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 misub-radius-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus-visible:ring-2 focus-visible:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
                             @input="handleFilterChange(filter, Number($event.target.value))"
+                            :aria-label="filter.label || filter.placeholder"
                         />
 
                         <!-- 选择器 -->
@@ -358,7 +360,7 @@
                             v-else-if="filter.type === 'select'"
                             :value="filterValue(filter)"
                             :disabled="loading || filter.disabled"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 misub-radius-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 misub-radius-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus-visible:ring-2 focus-visible:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
                             @change="handleFilterChange(filter, $event.target.value)"
                         >
                             <option value="">{{ filter.placeholder || t('common.choose') }}</option>
@@ -377,7 +379,7 @@
                             multiple
                             :value="Array.isArray(filterValue(filter)) ? filterValue(filter) : []"
                             :disabled="loading || filter.disabled"
-                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 misub-radius-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 misub-radius-md bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus-visible:ring-2 focus-visible:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
                             @change="
                                 handleFilterChange(
                                     filter,
@@ -406,7 +408,7 @@
                                 type="checkbox"
                                 :checked="Boolean(filterValue(filter))"
                                 :disabled="loading || filter.disabled"
-                                class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus-visible:ring-indigo-500"
                                 @change="handleFilterChange(filter, $event.target.checked)"
                             />
                             <span class="text-sm text-gray-700 dark:text-gray-300">{{

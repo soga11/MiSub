@@ -1,4 +1,7 @@
 <script setup>
+    import { useI18n } from '../../i18n/index.js';
+
+    const { t } = useI18n();
     import { computed } from 'vue';
     import { useVersionStore } from '../../stores/version';
     import Modal from '../forms/Modal.vue';
@@ -37,26 +40,33 @@
     >
         <template #title>
             <div class="flex items-center gap-3">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white">系统更新日志</h3>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">
+                    {{ t('changelog.title') }}
+                </h3>
                 <span
                     v-if="isLatest"
                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-300"
                 >
-                    最新版本
+                    {{ t('changelog.latestVersion') }}
                 </span>
                 <span
                     v-else
                     class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 animate-pulse"
                 >
-                    有新版本
+                    {{ t('changelog.newVersionAvailable') }}
                 </span>
             </div>
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                <template v-if="isLatest"> 当前版本 v{{ currentVersion }} 已是最新版本。 </template>
+                <template v-if="isLatest">{{
+                    t('changelog.upToDate', { version: currentVersion })
+                }}</template>
                 <template v-else>
-                    检测到上游新版本 {{ release.tag_name }}，当前版本为 v{{
-                        currentVersion
-                    }}。建议及时更新。
+                    {{
+                        t('changelog.newVersionDetected', {
+                            latest: release.tag_name,
+                            current: currentVersion,
+                        })
+                    }}
                 </template>
             </p>
         </template>
@@ -69,12 +79,16 @@
                     <div class="font-semibold">
                         {{
                             isLatest
-                                ? 'v' + currentVersion + ' 版本更新亮点'
-                                : release.name || release.tag_name || '版本说明'
+                                ? t('changelog.highlightsTitle', { version: currentVersion })
+                                : release.name || release.tag_name || t('changelog.releaseNotes')
                         }}
                     </div>
                     <div v-if="!isLatest && release.published_at" class="mt-1 text-xs opacity-80">
-                        发布时间：{{ new Date(release.published_at).toLocaleString() }}
+                        {{
+                            t('changelog.publishedAt', {
+                                date: new Date(release.published_at).toLocaleString(),
+                            })
+                        }}
                     </div>
                 </div>
 
@@ -87,7 +101,7 @@
                     <template v-else-if="release.body">
                         {{ release.body }}
                     </template>
-                    <template v-else> 当前版本未提供详细更新说明。 </template>
+                    <template v-else>{{ t('changelog.noDetails') }}</template>
                 </div>
 
                 <a
@@ -97,7 +111,7 @@
                     rel="noopener noreferrer"
                     class="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 dark:text-indigo-300 dark:hover:text-indigo-200"
                 >
-                    查看上游发布页
+                    {{ t('changelog.viewReleasePage') }}
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
@@ -122,13 +136,13 @@
                     @click="emit('suppress')"
                     class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                 >
-                    不再显示
+                    {{ t('changelog.dontShowAgain') }}
                 </button>
                 <button
                     @click="emit('confirm')"
                     class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
                 >
-                    确认
+                    {{ t('actions.confirm') }}
                 </button>
             </div>
         </template>

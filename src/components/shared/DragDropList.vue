@@ -269,7 +269,7 @@
             <div v-if="loading" class="drag-drop-loading">
                 <div class="flex items-center justify-center py-8">
                     <svg
-                        class="animate-spin h-5 w-5 text-gray-400 mr-2"
+                        class="animate-spin h-5 w-5 text-gray-500 dark:text-gray-400 mr-2"
                         fill="none"
                         viewBox="0 0 24 24"
                     >
@@ -297,7 +297,7 @@
                     class="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400"
                 >
                     <svg
-                        class="w-12 h-12 mb-2 text-gray-300 dark:text-gray-600"
+                        class="w-12 h-12 mb-2 text-gray-500 dark:text-gray-400"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -332,7 +332,11 @@
                 >
                     <!-- 拖拽手柄 -->
                     <div v-if="showHandle && draggable && !disabled" class="drag-handle">
-                        <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <svg
+                            class="w-4 h-4 text-gray-500 dark:text-gray-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                        >
                             <path
                                 d="M7 2a2 2 0 11-4 0 2 2 0 014 0zM7 12a2 2 0 11-4 0 2 2 0 014 0zM7 22a2 2 0 11-4 0 2 2 0 014 0zM17 2a2 2 0 11-4 0 2 2 0 014 0zM17 12a2 2 0 11-4 0 2 2 0 014 0zM17 22a2 2 0 11-4 0 2 2 0 014 0z"
                             />
@@ -372,8 +376,9 @@
                                         <button
                                             v-if="!disabled"
                                             type="button"
-                                            class="p-1 text-red-400 hover:text-red-600 transition-colors"
+                                            class="p-1 text-red-400 hover:text-red-600 transition-colors touch-target"
                                             @click.stop="removeItem(index)"
+                                            :aria-label="t('actions.delete')"
                                         >
                                             <svg
                                                 class="w-4 h-4"

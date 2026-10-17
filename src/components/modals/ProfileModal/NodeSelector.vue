@@ -2,7 +2,7 @@
     import { computed } from 'vue';
     import draggable from 'vuedraggable';
     import { useI18n } from '@/i18n/index.js';
-    import Switch from '../../ui/Switch.vue';
+    import { DEFAULT_GROUP_KEY } from '@/composables/manual-nodes/groups.js';
 
     const { t } = useI18n();
 
@@ -31,17 +31,12 @@
             type: Array,
             default: () => [],
         },
-        autoIncludeAll: {
-            type: Boolean,
-            default: false,
-        },
     });
 
     const emit = defineEmits([
         'update:searchTerm',
         'update:groupFilter',
         'update:selectedIds',
-        'update:autoIncludeAll',
         'toggle-selection',
         'select-all',
         'deselect-all',
@@ -52,18 +47,13 @@
         set: (val) => emit('update:searchTerm', val),
     });
 
-    const effectiveSelectedIds = computed(() =>
-        props.autoIncludeAll ? props.nodes.map((node) => node.id) : props.selectedIds
-    );
-
     // 根据 selectedIds 顺序获取已选节点对象列表
     const orderedSelectedNodes = computed({
         get() {
             const nodeMap = new Map(props.nodes.map((n) => [n.id, n]));
-            return effectiveSelectedIds.value.map((id) => nodeMap.get(id)).filter(Boolean);
+            return props.selectedIds.map((id) => nodeMap.get(id)).filter(Boolean);
         },
         set(newList) {
-            if (props.autoIncludeAll) return;
             // 拖拽排序后更新 ID 顺序
             emit(
                 'update:selectedIds',
@@ -75,28 +65,11 @@
 
 <template>
     <div v-if="nodes.length > 0" class="space-y-2">
-        <div
-            class="flex items-center justify-between gap-4 rounded-lg border border-indigo-100 bg-indigo-50/70 p-3 dark:border-indigo-500/20 dark:bg-indigo-500/10"
-        >
-            <div class="min-w-0">
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">
-                    {{ t('profileModal.autoIncludeAllNodes') }}
-                </p>
-                <p class="mt-0.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                    {{ t('profileModal.autoIncludeAllNodesHint') }}
-                </p>
-            </div>
-            <Switch
-                :model-value="autoIncludeAll"
-                :label="t('profileModal.autoIncludeAllNodes')"
-                @update:model-value="emit('update:autoIncludeAll', $event)"
-            />
-        </div>
         <div class="flex justify-between items-center mb-2">
             <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">
                 {{ t('profileModal.selectNodes') }}
             </h4>
-            <div v-if="!autoIncludeAll" class="space-x-2">
+            <div class="space-x-2">
                 <button @click="emit('select-all')" class="text-xs text-indigo-600 hover:underline">
                     {{ t('profileModal.selectAll') }}
                 </button>
@@ -124,10 +97,10 @@
                 {{ t('manualNodes.allGroups') }}
             </button>
             <button
-                @click="emit('update:groupFilter', t('manualNodes.defaultGroup'))"
+                @click="emit('update:groupFilter', DEFAULT_GROUP_KEY)"
                 class="px-2.5 py-1 text-xs font-medium rounded-full transition-all border shrink-0 whitespace-nowrap"
                 :class="
-                    activeGroupFilter === t('manualNodes.defaultGroup')
+                    activeGroupFilter === DEFAULT_GROUP_KEY
                         ? 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900 dark:text-indigo-300 dark:border-indigo-700'
                         : 'bg-white text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600'
                 "
@@ -154,10 +127,11 @@
                 type="text"
                 v-model="searchModel"
                 :placeholder="t('manualNodes.searchPlaceholder')"
-                class="w-full pl-9 pr-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus:outline-hidden focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full pl-9 pr-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-indigo-500 focus:border-indigo-500"
+                :aria-label="t('manualNodes.searchPlaceholder')"
             />
             <svg
-                class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+                class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -178,10 +152,9 @@
                 <label class="flex items-center space-x-3 cursor-pointer">
                     <input
                         type="checkbox"
-                        :checked="effectiveSelectedIds.includes(node.id)"
-                        :disabled="autoIncludeAll"
+                        :checked="selectedIds.includes(node.id)"
                         @change="emit('toggle-selection', node.id)"
-                        class="h-4 w-4 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+                        class="h-4 w-4 rounded-sm border-gray-300 text-indigo-600 focus-visible:ring-indigo-500"
                     />
                     <span
                         class="text-sm text-gray-800 dark:text-gray-200 truncate"
@@ -196,7 +169,7 @@
         </div>
 
         <!-- 已选节点拖拽排序区域 -->
-        <div v-if="!autoIncludeAll && orderedSelectedNodes.length > 0" class="mt-3">
+        <div v-if="orderedSelectedNodes.length > 0" class="mt-3">
             <div class="flex justify-between items-center mb-1.5">
                 <h5 class="text-xs font-medium text-gray-500 dark:text-gray-400">
                     {{ t('profileModal.selectedDrag', { count: orderedSelectedNodes.length }) }}
@@ -214,7 +187,7 @@
                         class="flex items-center gap-2 px-2 py-1.5 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 shadow-xs"
                     >
                         <span
-                            class="drag-handle cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            class="drag-handle cursor-grab active:cursor-grabbing text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                         >
                             <svg
                                 class="w-4 h-4"
@@ -242,8 +215,9 @@
                         </span>
                         <button
                             @click="emit('toggle-selection', element.id)"
-                            class="text-gray-400 hover:text-red-500 transition-colors"
+                            class="text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"
                             :title="t('profileModal.remove')"
+                            :aria-label="t('profileModal.remove')"
                         >
                             <svg
                                 class="w-4 h-4"
@@ -264,28 +238,10 @@
             </draggable>
         </div>
     </div>
-    <div v-else class="space-y-2">
-        <div
-            class="flex items-center justify-between gap-4 rounded-lg border border-indigo-100 bg-indigo-50/70 p-3 dark:border-indigo-500/20 dark:bg-indigo-500/10"
-        >
-            <div class="min-w-0">
-                <p class="text-sm font-medium text-gray-800 dark:text-gray-100">
-                    {{ t('profileModal.autoIncludeAllNodes') }}
-                </p>
-                <p class="mt-0.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                    {{ t('profileModal.autoIncludeAllNodesHint') }}
-                </p>
-            </div>
-            <Switch
-                :model-value="autoIncludeAll"
-                :label="t('profileModal.autoIncludeAllNodes')"
-                @update:model-value="emit('update:autoIncludeAll', $event)"
-            />
-        </div>
-        <div
-            class="text-center text-sm text-gray-500 p-4 bg-gray-50 dark:bg-gray-900/50 misub-radius-md flex items-center justify-center h-24"
-        >
-            {{ t('profileModal.noAvailableNodes') }}
-        </div>
+    <div
+        v-else
+        class="text-center text-sm text-gray-500 p-4 bg-gray-50 dark:bg-gray-900/50 misub-radius-md flex items-center justify-center h-full"
+    >
+        {{ t('profileModal.noAvailableNodes') }}
     </div>
 </template>

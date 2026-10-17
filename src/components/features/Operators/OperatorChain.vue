@@ -293,7 +293,7 @@
             class="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/30 py-12 text-center dark:border-gray-800 dark:bg-gray-900/10"
         >
             <div
-                class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800"
+                class="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-500 dark:text-gray-400 dark:bg-gray-800"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -340,7 +340,7 @@
                                     'w-8 h-8 flex items-center justify-center rounded-xl border shadow-sm transition-colors',
                                     expandedIndex === index
                                         ? 'bg-indigo-600 border-indigo-500 text-white'
-                                        : 'bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-700 text-gray-400',
+                                        : 'bg-gray-50 dark:bg-gray-900 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400',
                                 ]"
                                 v-html="getOperatorIcon(op.type)"
                             ></div>
@@ -351,7 +351,7 @@
                                     </h4>
                                     <span
                                         v-if="!op.enabled"
-                                        class="rounded-full border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[9px] text-gray-400 dark:border-gray-700 dark:bg-gray-900"
+                                        class="rounded-full border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[9px] text-gray-500 dark:text-gray-400 dark:border-gray-700 dark:bg-gray-900"
                                         >{{ t('operators.paused') }}</span
                                     >
                                 </div>
@@ -373,7 +373,7 @@
                             >
                                 <button
                                     @click="(e) => moveOperator(e, index, -1)"
-                                    class="rounded-md p-1 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-30 dark:hover:bg-indigo-500/10"
+                                    class="rounded-md p-1 text-gray-500 dark:text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-30 dark:hover:bg-indigo-500/10"
                                     :disabled="index === 0"
                                 >
                                     <svg
@@ -393,7 +393,7 @@
                                 </button>
                                 <button
                                     @click="(e) => moveOperator(e, index, 1)"
-                                    class="rounded-md p-1 text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-30 dark:hover:bg-indigo-500/10"
+                                    class="rounded-md p-1 text-gray-500 dark:text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 disabled:opacity-30 dark:hover:bg-indigo-500/10"
                                     :disabled="index === modelValue.length - 1"
                                 >
                                     <svg
@@ -417,7 +417,7 @@
                                     :class="
                                         op.enabled
                                             ? 'text-indigo-500 hover:bg-orange-50 hover:text-orange-500 dark:hover:bg-orange-500/10'
-                                            : 'text-gray-400 hover:bg-indigo-50 hover:text-indigo-500 dark:hover:bg-indigo-500/10'
+                                            : 'text-gray-500 dark:text-gray-400 hover:bg-indigo-50 hover:text-indigo-500 dark:hover:bg-indigo-500/10'
                                     "
                                 >
                                     <svg
@@ -442,7 +442,7 @@
                                             removeOperator(index);
                                         }
                                     "
-                                    class="rounded-md p-1 text-gray-300 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10"
+                                    class="rounded-md p-1 text-gray-500 dark:text-gray-400 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-500/10"
                                 >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -462,7 +462,7 @@
                             </div>
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                class="h-4 w-4 text-gray-300 transition-transform duration-300"
+                                class="h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform duration-300"
                                 :class="{ 'rotate-180 text-indigo-500': expandedIndex === index }"
                                 fill="none"
                                 viewBox="0 0 24 24"
@@ -533,7 +533,7 @@
                                                 code: e.target.value,
                                             })
                                     "
-                                    class="w-full h-64 p-4 font-mono text-sm bg-slate-900/50 text-slate-200 border border-slate-700/50 rounded-xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all resize-none"
+                                    class="w-full h-64 p-4 font-mono text-sm bg-slate-900/50 text-slate-200 border border-slate-700/50 rounded-xl focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all resize-none"
                                     placeholder="function operator($proxies, $context) { ... }"
                                 ></textarea>
                             </div>

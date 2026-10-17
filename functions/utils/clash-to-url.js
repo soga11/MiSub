@@ -6,6 +6,10 @@ function base64UrlSafeEncode(str) {
     return base64Encode(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
+function formatUriServer(server) {
+    return server.includes(':') && !server.startsWith('[') ? `[${server}]` : server;
+}
+
 function appendHysteria2RealmParams(params, realmOpts) {
     if (!realmOpts || typeof realmOpts !== 'object') return;
     if (realmOpts['realm-id']) params.push(`realm-id=${encodeURIComponent(realmOpts['realm-id'])}`);
@@ -22,13 +26,43 @@ export function convertClashProxyToUrl(proxy) {
         const type = (proxy.type || '').toLowerCase();
         const name = proxy.name || 'Untitled';
         const server = proxy.server;
+        const uriServer = formatUriServer(server);
         const port = proxy.port;
 
         if (!server || !port) return null;
 
+        if (type === 'mieru') {
+            const params = new URLSearchParams();
+            for (const key of ['username', 'password', 'transport', 'udp', 'multiplexing', 'handshake-mode', 'mtu', 'profile']) {
+                if (proxy[key] !== undefined && proxy[key] !== null) params.set(key, String(proxy[key]));
+            }
+            return `mierus://${formatUriServer(server)}:${port}?${params.toString()}#${encodeURIComponent(name)}`;
+        }
+
+        if (type === 'http' || type === 'https') {
+            const useTls = type === 'https' || proxy.tls === true;
+            const scheme = useTls ? 'https' : 'http';
+            const userInfo = proxy.username
+                ? `${encodeURIComponent(proxy.username)}${proxy.password ? `:${encodeURIComponent(proxy.password)}` : ''}@`
+                : '';
+            const params = new URLSearchParams();
+            if (useTls) {
+                const sni = proxy.sni || proxy.servername;
+                if (sni) params.set('sni', sni);
+                if (proxy['skip-cert-verify'] !== undefined) {
+                    params.set('allowInsecure', proxy['skip-cert-verify'] ? '1' : '0');
+                }
+                const fingerprint = proxy['client-fingerprint'] || proxy.fingerprint;
+                if (fingerprint) params.set('fp', fingerprint);
+                if (proxy.alpn) params.set('alpn', Array.isArray(proxy.alpn) ? proxy.alpn.join(',') : proxy.alpn);
+            }
+            const query = params.toString();
+            return `${scheme}://${userInfo}${uriServer}:${port}${query ? `?${query}` : ''}#${encodeURIComponent(name)}`;
+        }
+
         if (type === 'ss' || type === 'shadowsocks') {
             const userInfo = base64Encode(`${proxy.cipher}:${proxy.password}`);
-            let url = `ss://${userInfo}@${server}:${port}`;
+            let url = `ss://${userInfo}@${uriServer}:${port}`;
             if (proxy.plugin) {
                 const params = [];
                 params.push(`plugin=${encodeURIComponent(proxy.plugin)}`);
@@ -127,8 +161,27 @@ export function convertClashProxyToUrl(proxy) {
             if (proxy['dialer-proxy'])
                 params.push(`dp=${encodeURIComponent(proxy['dialer-proxy'])}`);
             if (proxy.skipCertVerify || proxy['skip-cert-verify']) params.push('allowInsecure=1');
+            const realityOpts = proxy['reality-opts'];
+            if (realityOpts) {
+                params.push('security=reality');
+                if (realityOpts['public-key'])
+                    params.push(`pbk=${encodeURIComponent(realityOpts['public-key'])}`);
+                if (realityOpts['short-id'])
+                    params.push(`sid=${encodeURIComponent(realityOpts['short-id'])}`);
+                if (realityOpts['spider-x'])
+                    params.push(`spx=${encodeURIComponent(realityOpts['spider-x'])}`);
+                const sxm =
+                    realityOpts['support-x25519mlkem768'] ?? realityOpts.support_x25519mlkem768;
+                if (sxm !== undefined) {
+                    if (sxm === false || sxm === 'false' || sxm === 0 || sxm === '0') {
+                        params.push('support-x25519mlkem768=false');
+                    } else if (sxm === true || sxm === 'true' || sxm === 1 || sxm === '1') {
+                        params.push('support-x25519mlkem768=true');
+                    }
+                }
+            }
             const query = params.length > 0 ? `?${params.join('&')}` : '';
-            return `trojan://${encodeURIComponent(proxy.password)}@${server}:${port}${query}#${encodeURIComponent(name)}`;
+            return `trojan://${encodeURIComponent(proxy.password)}@${uriServer}:${port}${query}#${encodeURIComponent(name)}`;
         }
 
         if (type === 'vless') {
@@ -172,6 +225,15 @@ export function convertClashProxyToUrl(proxy) {
                     params.push(`sid=${encodeURIComponent(realityOpts['short-id'])}`);
                 if (realityOpts['spider-x'])
                     params.push(`spx=${encodeURIComponent(realityOpts['spider-x'])}`);
+                const sxm =
+                    realityOpts['support-x25519mlkem768'] ?? realityOpts.support_x25519mlkem768;
+                if (sxm !== undefined) {
+                    if (sxm === false || sxm === 'false' || sxm === 0 || sxm === '0') {
+                        params.push('support-x25519mlkem768=false');
+                    } else if (sxm === true || sxm === 'true' || sxm === 1 || sxm === '1') {
+                        params.push('support-x25519mlkem768=true');
+                    }
+                }
             } else if (proxy.tls) {
                 params.push('security=tls');
             }
@@ -182,7 +244,7 @@ export function convertClashProxyToUrl(proxy) {
                 params.push(`fp=${encodeURIComponent(proxy['client-fingerprint'])}`);
             if (proxy['dialer-proxy'])
                 params.push(`dp=${encodeURIComponent(proxy['dialer-proxy'])}`);
-            return `vless://${uuid}@${server}:${port}?${params.join('&')}#${encodeURIComponent(name)}`;
+            return `vless://${uuid}@${uriServer}:${port}?${params.join('&')}#${encodeURIComponent(name)}`;
         }
 
         if (type === 'hysteria2' || type === 'hy2' || type === 'hy') {
@@ -195,6 +257,8 @@ export function convertClashProxyToUrl(proxy) {
             if (sni !== undefined) params.push(`sni=${encodeURIComponent(sni)}`);
             if (proxy.skipCertVerify || proxy['skip-cert-verify']) params.push('insecure=1');
             if (proxy.ports !== undefined) params.push(`ports=${encodeURIComponent(proxy.ports)}`);
+            if (proxy['hop-interval'] !== undefined)
+                params.push(`hop-interval=${encodeURIComponent(proxy['hop-interval'])}`);
             if (proxy.up !== undefined || proxy['up-mbps'] !== undefined)
                 params.push(`up=${encodeURIComponent(proxy.up ?? proxy['up-mbps'])}`);
             if (proxy.down !== undefined || proxy['down-mbps'] !== undefined)
@@ -205,7 +269,7 @@ export function convertClashProxyToUrl(proxy) {
                 params.push(`dp=${encodeURIComponent(proxy['dialer-proxy'])}`);
             appendHysteria2RealmParams(params, proxy['realm-opts']);
             const query = params.length > 0 ? `?${params.join('&')}` : '';
-            return `hysteria2://${encodeURIComponent(password)}@${server}:${port}${query}#${encodeURIComponent(name)}`;
+            return `hysteria2://${encodeURIComponent(password)}@${uriServer}:${port}${query}#${encodeURIComponent(name)}`;
         }
 
         if (type === 'hysteria') {
@@ -218,7 +282,7 @@ export function convertClashProxyToUrl(proxy) {
             if (proxy.down || proxy['down-mbps'])
                 params.push(`down=${proxy.down || proxy['down-mbps']}`);
             const query = params.length > 0 ? `?${params.join('&')}` : '';
-            return `hysteria://${encodeURIComponent(password)}@${server}:${port}${query}#${encodeURIComponent(name)}`;
+            return `hysteria://${encodeURIComponent(password)}@${uriServer}:${port}${query}#${encodeURIComponent(name)}`;
         }
 
         if (type === 'socks5') {
@@ -250,7 +314,7 @@ export function convertClashProxyToUrl(proxy) {
             if (proxy.ecn) params.push('ecn=true');
             const psk = proxy.psk || proxy.password || '';
             const query = params.length > 0 ? `?${params.join('&')}` : '';
-            return `snell://${encodeURIComponent(psk)}@${server}:${port}${query}#${encodeURIComponent(name)}`;
+            return `snell://${encodeURIComponent(psk)}@${uriServer}:${port}${query}#${encodeURIComponent(name)}`;
         }
 
         if (type === 'naive' || proxy.protocol === 'naive') {
@@ -287,7 +351,7 @@ export function convertClashProxyToUrl(proxy) {
                 params.push(`pinnedPeerCertSha256=${encodeURIComponent(pinnedPeerCertSha256)}`);
             if (proxy.padding !== undefined) params.push(`padding=${proxy.padding}`);
             const query = params.length > 0 ? `?${params.join('&')}` : '';
-            return `anytls://${encodeURIComponent(password)}@${server}:${port}${query}#${encodeURIComponent(name)}`;
+            return `anytls://${encodeURIComponent(password)}@${uriServer}:${port}${query}#${encodeURIComponent(name)}`;
         }
 
         if (type === 'tuic') {
@@ -342,7 +406,7 @@ export function convertClashProxyToUrl(proxy) {
             if (proxy['dialer-proxy'])
                 params.push(`dp=${encodeURIComponent(proxy['dialer-proxy'])}`);
             const query = params.length > 0 ? `?${params.join('&')}` : '';
-            return `tuic://${auth}@${server}:${port}${query}#${encodeURIComponent(name)}`;
+            return `tuic://${auth}@${uriServer}:${port}${query}#${encodeURIComponent(name)}`;
         }
 
         if (type === 'wireguard') {

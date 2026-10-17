@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick } from 'vue';
 import TransformCard from '../../src/components/settings/sections/ServiceSettings/TransformCard.vue';
@@ -36,6 +36,56 @@ function createSettings(overrides = {}) {
 describe('TransformCard third-party backend test button', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    it('restores previous built-in settings after switching engine and handles rejected tests', async () => {
+        const settings = createSettings({
+            transformConfigMode: 'builtin',
+            transformConfig: 'builtin:clash_misub',
+            builtinSkipCertVerify: true,
+            builtinEnableUdp: true,
+            subconverter: { engineMode: 'builtin' },
+        });
+        const wrapper = mount(TransformCard, {
+            props: { settings },
+            global: {
+                stubs: { TransformSelector: true, RuleTemplateManager: true },
+            },
+        });
+
+        const engineButtons = wrapper.findAll('button');
+        await engineButtons
+            .find((button) => button.text().includes('External backend'))
+            .trigger('click');
+        await wrapper
+            .get('[data-testid="engine-change-notice"] button:nth-of-type(2)')
+            .trigger('click');
+        expect(settings.subconverter.engineMode).toBe('builtin');
+        expect(settings.transformConfigMode).toBe('builtin');
+        expect(settings.transformConfig).toBe('builtin:clash_misub');
+        expect(settings.builtinSkipCertVerify).toBe(true);
+        expect(settings.builtinEnableUdp).toBe(true);
+
+        const externalSettings = createSettings();
+        externalSettings.subconverter.defaultBackend = 'api.v1.mk';
+        const externalWrapper = mount(TransformCard, {
+            props: { settings: externalSettings },
+            global: { stubs: { TransformSelector: true, RuleTemplateManager: true } },
+        });
+        testSubconverterBackend.mockRejectedValue(new Error('网络不可用'));
+        const testButton = externalWrapper.get('[data-testid="test-subconverter-backend"]');
+        await testButton.trigger('click');
+        expect(testSubconverterBackend).toHaveBeenCalledOnce();
+        await vi.waitFor(() =>
+            expect(
+                externalWrapper.find('[data-testid="subconverter-backend-test-result"]').exists()
+            ).toBe(true)
+        );
+        await flushPromises();
+        expect(
+            externalWrapper.get('[data-testid="subconverter-backend-test-result"]').text()
+        ).toContain('网络不可用');
+        expect(testButton.attributes('disabled')).toBeUndefined();
     });
 
     it('renders a safe backend test action and displays success feedback', async () => {

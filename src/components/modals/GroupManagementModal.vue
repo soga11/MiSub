@@ -2,6 +2,10 @@
     import { ref, computed, watch } from 'vue';
     import Modal from '../forms/Modal.vue';
     import draggable from 'vuedraggable';
+    import { useI18n } from '../../i18n/index.js';
+    import { confirmAction } from '../../composables/useConfirm.js';
+
+    const { t } = useI18n();
 
     const props = defineProps({
         show: Boolean,
@@ -66,11 +70,15 @@
         cancelEdit();
     };
 
-    const handleDelete = (groupName) => {
-        if (confirm(`确定删除分组 "${groupName}" 吗？分组内的节点将移至"默认"分组。`)) {
-            emit('delete', groupName);
-            localGroups.value = localGroups.value.filter((g) => g.name !== groupName);
-        }
+    const handleDelete = async (groupName) => {
+        const confirmed = await confirmAction({
+            message: t('subscriptions.deleteGroupConfirm', { name: groupName }),
+            variant: 'danger',
+        });
+        if (!confirmed) return;
+
+        emit('delete', groupName);
+        localGroups.value = localGroups.value.filter((g) => g.name !== groupName);
     };
 
     const handleDragEnd = () => {
@@ -95,7 +103,7 @@
                         d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
                     />
                 </svg>
-                <span>分组管理</span>
+                <span>{{ t('actions.manageGroups') }}</span>
             </div>
         </template>
 
@@ -119,7 +127,7 @@
                             d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
                         />
                     </svg>
-                    <p>暂无分组</p>
+                    <p>{{ t('subscriptions.noGroups') }}</p>
                 </div>
 
                 <draggable
@@ -144,8 +152,9 @@
                             <!-- 拖拽手柄 -->
                             <button
                                 v-if="isDraggable"
-                                class="drag-handle cursor-move text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                                title="拖拽排序"
+                                class="drag-handle cursor-move text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                :title="t('common.dragToSort')"
+                                :aria-label="t('common.dragToSort')"
                             >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
@@ -165,11 +174,12 @@
                                     v-if="editingGroupIndex === index"
                                     v-model="editingGroupName"
                                     type="text"
-                                    class="w-full px-3 py-1.5 text-sm border border-indigo-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                    class="w-full px-3 py-1.5 text-sm border border-indigo-300 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                     @keyup.enter="confirmEdit"
                                     @keyup.esc="cancelEdit"
                                     ref="editInput"
                                     autofocus
+                                    :aria-label="t('subscriptions.renameGroup')"
                                 />
                                 <div v-else class="flex items-center gap-2">
                                     <span
@@ -184,8 +194,9 @@
                                 <template v-if="editingGroupIndex === index">
                                     <button
                                         @click="confirmEdit"
-                                        class="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-colors"
-                                        title="确认"
+                                        class="p-1.5 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-md transition-colors touch-target"
+                                        :title="t('actions.confirm')"
+                                        :aria-label="t('actions.confirm')"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -202,8 +213,9 @@
                                     </button>
                                     <button
                                         @click="cancelEdit"
-                                        class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
-                                        title="取消"
+                                        class="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors touch-target"
+                                        :title="t('actions.cancel')"
+                                        :aria-label="t('actions.cancel')"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -222,8 +234,9 @@
                                 <template v-else>
                                     <button
                                         @click="startEdit(index)"
-                                        class="p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-md transition-colors"
-                                        title="重命名"
+                                        class="p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-md transition-colors touch-target"
+                                        :title="t('subscriptions.renameGroup')"
+                                        :aria-label="t('subscriptions.renameGroup')"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -238,8 +251,9 @@
                                     </button>
                                     <button
                                         @click="handleDelete(element.name)"
-                                        class="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
-                                        title="删除"
+                                        class="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors touch-target"
+                                        :title="t('actions.delete')"
+                                        :aria-label="t('actions.delete')"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -274,7 +288,7 @@
                                 clip-rule="evenodd"
                             />
                         </svg>
-                        <span>拖拽分组左侧的图标可调整显示顺序</span>
+                        <span>{{ t('subscriptions.dragToReorder') }}</span>
                     </p>
                 </div>
             </div>
@@ -285,7 +299,7 @@
                 @click="handleClose"
                 class="w-full rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
             >
-                关闭
+                {{ t('common.close') }}
             </button>
         </template>
     </Modal>

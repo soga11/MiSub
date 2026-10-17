@@ -160,6 +160,7 @@
                 <button
                     @click="closeModal"
                     class="w-10 h-10 flex items-center justify-center misub-radius-md bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    :aria-label="t('common.close')"
                 >
                     <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path
@@ -263,7 +264,7 @@
             >
                 <div class="flex items-start gap-3">
                     <svg
-                        class="w-5 h-5 shrink-0 mt-0.5 text-gray-400"
+                        class="w-5 h-5 shrink-0 mt-0.5 text-gray-500 dark:text-gray-400"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"

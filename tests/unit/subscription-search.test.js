@@ -4,6 +4,7 @@ import { nextTick } from 'vue';
 import { useDataStore } from '../../src/stores/useDataStore.js';
 import { useProfiles } from '../../src/composables/useProfiles.js';
 import { useSubscriptions } from '../../src/composables/useSubscriptions.js';
+import { inferAirportRootDomain } from '../../src/utils/airport-domain.js';
 
 describe('subscription list search', () => {
     beforeEach(() => {
@@ -29,6 +30,33 @@ describe('subscription list search', () => {
 
         searchQuery.value = 'hk.example';
         expect(filteredSubscriptions.value.map((item) => item.id)).toEqual(['s1']);
+    });
+
+    it('sorts each airport subscriptions together while paginating the list', () => {
+        const dataStore = useDataStore();
+        dataStore.subscriptions = [
+            ...Array.from({ length: 5 }, (_, i) => ({
+                id: `other-${i}`,
+                name: `Other ${i}`,
+                url: `https://other${i}.net/sub`,
+            })),
+            ...Array.from({ length: 3 }, (_, i) => ({
+                id: `airport-${i}`,
+                name: `Airport ${i}`,
+                url: `https://api.airport.example.com/sub/${i}`,
+            })),
+            ...Array.from({ length: 4 }, (_, i) => ({
+                id: `tail-${i}`,
+                name: `Tail ${i}`,
+                url: `https://tail${i}.org/sub`,
+            })),
+        ];
+
+        const { paginatedSubscriptions, filteredSubscriptions } = useSubscriptions(vi.fn());
+        expect(filteredSubscriptions.value.map((item) => item.id)).toHaveLength(12);
+        expect(paginatedSubscriptions.value.map((item) => item.id)).toEqual([
+            'airport-0', 'airport-1', 'airport-2', 'other-0', 'other-1', 'other-2',
+        ]);
     });
 
     it('filters my subscriptions by name, description, and custom ID', () => {

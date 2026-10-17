@@ -2,6 +2,9 @@
     import { ref, watch } from 'vue';
     import { api } from '../../lib/http.js';
     import Modal from '../forms/Modal.vue';
+    import { useI18n } from '../../i18n/index.js';
+
+    const { t } = useI18n();
 
     const props = defineProps({
         show: {
@@ -79,12 +82,12 @@
         errorMsg.value = '';
 
         if (!form.value.content || !form.value.content.trim()) {
-            errorMsg.value = '请填写反馈内容';
+            errorMsg.value = t('guestbook.contentRequired');
             return;
         }
 
         if (parseInt(form.value.captcha) !== captcha.value.answer) {
-            errorMsg.value = '验证码错误，请重试';
+            errorMsg.value = t('guestbook.captchaError');
             generateCaptcha();
             return;
         }
@@ -100,12 +103,12 @@
             if (data.success) {
                 showSuccess.value = true;
             } else {
-                errorMsg.value = data.message || '提交失败';
+                errorMsg.value = data.message || t('guestbook.submitFailed');
                 generateCaptcha();
             }
         } catch (e) {
             console.error('Submit guestbook error', e);
-            errorMsg.value = '网络错误，请稍后重试';
+            errorMsg.value = t('guestbook.networkError');
         } finally {
             submitting.value = false;
         }
@@ -117,14 +120,10 @@
         <template #title>
             <div class="pr-10">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white">
-                    {{ showSuccess ? '提交成功' : '提交反馈' }}
+                    {{ showSuccess ? t('guestbook.submitSuccess') : t('guestbook.submitFeedback') }}
                 </h3>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    {{
-                        showSuccess
-                            ? '感谢您的反馈，管理员已收到您的留言。'
-                            : '所有的反馈都会被认真阅读'
-                    }}
+                    {{ showSuccess ? t('guestbook.thanksShort') : t('guestbook.feedbackNote') }}
                 </p>
             </div>
         </template>
@@ -152,52 +151,57 @@
                     </svg>
                 </div>
                 <p class="max-w-xs text-gray-500 dark:text-gray-400">
-                    感谢您的反馈！管理员已收到您的留言。
+                    {{ t('guestbook.thanksMessage') }}
                 </p>
             </div>
 
             <div v-else class="space-y-4">
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                        >反馈类型</label
+                    <label
+                        class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >{{ t('guestbook.feedbackType') }}</label
                     >
                     <select
                         v-model="form.type"
-                        class="block w-full misub-radius-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 dark:text-white py-2 px-3 text-sm"
+                        class="block w-full misub-radius-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus-visible:ring-indigo-500 bg-white dark:bg-gray-700 dark:text-white py-2 px-3 text-sm"
                     >
-                        <option value="general">💬 普通留言</option>
-                        <option value="feature">✨ 功能建议</option>
-                        <option value="bug">🐛 问题反馈</option>
+                        <option value="general">💬 {{ t('guestbook.typeGeneral') }}</option>
+                        <option value="feature">✨ {{ t('guestbook.typeFeature') }}</option>
+                        <option value="bug">🐛 {{ t('guestbook.typeBug') }}</option>
                     </select>
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                        >昵称 (可选)</label
+                    <label
+                        class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >{{ t('guestbook.nicknameOptional') }}</label
                     >
                     <input
                         type="text"
                         v-model="form.nickname"
-                        placeholder="您怎么称呼？"
-                        class="block w-full misub-radius-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 dark:text-white py-2 px-3 text-sm"
+                        :placeholder="t('guestbook.nicknamePlaceholder')"
+                        class="block w-full misub-radius-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus-visible:ring-indigo-500 bg-white dark:bg-gray-700 dark:text-white py-2 px-3 text-sm"
+                        :aria-label="t('settings.guestbookNickname')"
                     />
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                        >内容</label
+                    <label
+                        class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >{{ t('guestbook.contentLabel') }}</label
                     >
                     <textarea
                         v-model="form.content"
                         rows="4"
-                        placeholder="请详细描述您的建议或遇到的问题..."
-                        class="block w-full misub-radius-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 dark:text-white py-2 px-3 text-sm resize-none"
+                        :placeholder="t('guestbook.contentPlaceholder')"
+                        class="block w-full misub-radius-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus-visible:ring-indigo-500 bg-white dark:bg-gray-700 dark:text-white py-2 px-3 text-sm resize-none"
                     ></textarea>
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
-                        >人机验证</label
+                    <label
+                        class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >{{ t('guestbook.captchaLabel') }}</label
                     >
                     <div class="flex items-center gap-3">
                         <div
@@ -208,15 +212,17 @@
                         <input
                             type="number"
                             v-model="form.captcha"
-                            placeholder="答案"
-                            class="block w-24 misub-radius-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 dark:text-white py-2 px-3 text-sm"
+                            :placeholder="t('guestbook.captchaPlaceholder')"
+                            class="block w-24 misub-radius-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus-visible:ring-indigo-500 bg-white dark:bg-gray-700 dark:text-white py-2 px-3 text-sm"
                             @keydown.enter="submitMessage"
+                            :aria-label="t('settings.guestbookCaptchaAnswer')"
                         />
                         <button
                             type="button"
                             @click="generateCaptcha"
-                            class="p-1 text-gray-400 transition-colors hover:text-indigo-500"
-                            title="刷新验证码"
+                            class="p-1 text-gray-500 dark:text-gray-400 transition-colors hover:text-indigo-500 touch-target"
+                            :title="t('common.refreshCaptcha')"
+                            :aria-label="t('common.refreshCaptcha')"
                         >
                             <svg
                                 class="w-5 h-5"
@@ -253,17 +259,17 @@
             <div class="flex w-full justify-end gap-3">
                 <button
                     @click="closeModal"
-                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 misub-radius-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 transition-colors"
+                    class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 misub-radius-md hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 transition-colors"
                 >
-                    {{ showSuccess ? '关闭' : '取消' }}
+                    {{ showSuccess ? t('common.close') : t('actions.cancel') }}
                 </button>
                 <button
                     v-if="!showSuccess"
                     @click="submitMessage"
                     :disabled="submitting || !form.content"
-                    class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent misub-radius-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md active:scale-95"
+                    class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent misub-radius-md hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md active:scale-95"
                 >
-                    {{ submitting ? '提交中...' : '提交反馈' }}
+                    {{ submitting ? t('guestbook.submitting') : t('guestbook.submitFeedback') }}
                 </button>
             </div>
         </template>

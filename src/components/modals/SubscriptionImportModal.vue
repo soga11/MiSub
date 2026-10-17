@@ -1,4 +1,7 @@
 <script setup>
+    import { useI18n } from '../../i18n/index.js';
+
+    const { t } = useI18n();
     import { ref, watch } from 'vue';
     import { useToastStore } from '../../stores/toast.js';
     import Modal from '../forms/Modal.vue';
@@ -11,6 +14,7 @@
     import ParseResult from './SubscriptionImport/ParseResult.vue';
     import GroupSelector from '../ui/GroupSelector.vue'; // Added
     import { readFilesAsText } from '../../utils/importFile.js';
+    import { buildAutoGroupName } from '../../utils/auto-group-name.js';
 
     const isDev = import.meta.env.DEV;
 
@@ -77,9 +81,9 @@
         props.addNodesFromBulk(uniqueNodes, targetGroupName);
 
         const successMsg =
-            `成功添加 ${uniqueNodes.length} 个节点` +
-            (targetGroupName ? ` 到分组 "${targetGroupName}"` : '') +
-            (duplicateCount > 0 ? `（去重 ${duplicateCount} 个重复节点）` : '');
+            t('importNodes.addedNodes', { count: uniqueNodes.length }) +
+            (targetGroupName ? t('importNodes.addedToGroup', { group: targetGroupName }) : '') +
+            (duplicateCount > 0 ? t('importNodes.dedupedSuffix', { count: duplicateCount }) : '');
 
         successMessage.value = successMsg;
         toastStore.showToast(successMsg, 'success');
@@ -99,34 +103,36 @@
      * 上传本地文件导入：读取文件文本 → 后端解析 → 入库。
      */
     const importFiles = async (fileList) => {
+        // 用户未填分组时，用文件名自动生成，免去手填
+        if (!groupName.value.trim() && fileList?.length) {
+            groupName.value = buildAutoGroupName({ fileName: fileList[0].name });
+        }
         const targetGroupName = groupName.value;
         errorMessage.value = '';
         successMessage.value = '';
         isLoading.value = true;
 
         try {
-            parseStatus.value = '正在读取文件...';
+            parseStatus.value = t('importNodes.readingFile');
             const { text, fileCount } = await readFilesAsText(fileList);
 
             if (!text.trim()) {
-                throw new Error('文件内容为空，未找到可导入的内容。');
+                throw new Error(t('importNodes.emptyFile'));
             }
 
-            parseStatus.value = `正在解析 ${fileCount} 个文件的内容...`;
+            parseStatus.value = t('importNodes.parsingFiles', { count: fileCount });
 
             const parseResult = await api.post('/api/parse_subscription', { content: text });
 
             if (!parseResult.success) {
-                throw new Error(parseResult.error || '解析文件失败');
+                throw new Error(parseResult.error || t('importNodes.parseFileFailed'));
             }
 
             const backendNodes = parseResult.data?.nodes || [];
 
             if (backendNodes.length === 0) {
                 parseStatus.value = '';
-                throw new Error(
-                    '未能从文件中解析出任何有效节点。请确认文件包含受支持的节点链接、Clash/Surge 配置或 Base64 订阅内容。'
-                );
+                throw new Error(t('importNodes.noValidNodesFromFile'));
             }
 
             parseStatus.value = '';
@@ -135,8 +141,11 @@
             console.error('文件导入失败:', error);
             handleError(error, 'File Import Error', { parseStatus: parseStatus.value });
             parseStatus.value = '';
-            errorMessage.value = error.message || '导入失败';
-            toastStore.showToast(`导入失败: ${error.message}`, 'error');
+            errorMessage.value = error.message || t('importNodes.failed');
+            toastStore.showToast(
+                t('importNodes.failedWithMessage', { message: error.message }),
+                'error'
+            );
         } finally {
             isLoading.value = false;
         }
@@ -162,12 +171,12 @@
 
         // 验证URL
         if (!isValidUrl(subscriptionUrl.value)) {
-            errorMessage.value = '请输入有效的 HTTP 或 HTTPS 订阅链接。';
+            errorMessage.value = t('importNodes.invalidUrl');
             return;
         }
 
         isLoading.value = true;
-        parseStatus.value = '正在获取订阅内容...';
+        parseStatus.value = t('importNodes.fetchingSubscription');
 
         try {
             const controller = new AbortController();
@@ -195,13 +204,13 @@
 
                     // 根据错误类型提供友好的错误信息
                     if (error.status === 408 || errorMsg.includes('timeout')) {
-                        throw new Error('请求超时，请检查网络连接或稍后重试');
+                        throw new Error(t('importNodes.requestTimeout'));
                     } else if (error.status === 413 || errorMsg.includes('too large')) {
-                        throw new Error('订阅内容过大，请使用较小的订阅链接');
+                        throw new Error(t('importNodes.contentTooLarge'));
                     } else if (errorMsg.includes('DNS')) {
-                        throw new Error('域名解析失败，请检查订阅链接是否正确');
+                        throw new Error(t('importNodes.dnsFailed'));
                     } else if (error.status >= 500) {
-                        throw new Error('服务器错误，请稍后重试');
+                        throw new Error(t('importNodes.serverError'));
                     }
                     throw new Error(errorMsg);
                 }
@@ -211,10 +220,10 @@
             }
 
             if (!responseData.success) {
-                throw new Error(responseData.error || '获取订阅内容失败');
+                throw new Error(responseData.error || t('importNodes.fetchFailed'));
             }
 
-            parseStatus.value = `正在解析订阅内容...`;
+            parseStatus.value = t('importNodes.parsingSubscription');
 
             // [重构] 调用后端解析API
             const parseResult = await api.post('/api/parse_subscription', {
@@ -222,7 +231,7 @@
             });
 
             if (!parseResult.success) {
-                throw new Error(parseResult.error || '解析订阅失败');
+                throw new Error(parseResult.error || t('importNodes.parseSubscriptionFailed'));
             }
 
             const backendNodes = parseResult.data.nodes || [];
@@ -231,9 +240,7 @@
                 commitParsedNodes(backendNodes, targetGroupName, 'URL import');
             } else {
                 parseStatus.value = '';
-                throw new Error(
-                    '未能从订阅链接中解析出任何有效节点。请检查链接内容是否包含支持的节点格式。'
-                );
+                throw new Error(t('importNodes.noValidNodesFromSubscription'));
             }
         } catch (error) {
             console.error('导入订阅失败:', error);
@@ -242,8 +249,11 @@
                 parseStatus: parseStatus.value,
             });
 
-            errorMessage.value = error.message || '导入失败';
-            toastStore.showToast(`导入失败: ${error.message}`, 'error');
+            errorMessage.value = error.message || t('importNodes.failed');
+            toastStore.showToast(
+                t('importNodes.failedWithMessage', { message: error.message }),
+                'error'
+            );
         } finally {
             isLoading.value = false;
         }
@@ -256,13 +266,13 @@
         @update:show="emit('update:show', $event)"
         @confirm="activeTab === 'url' ? importSubscription() : null"
     >
-        <template #title>导入节点 / 订阅</template>
+        <template #title>{{ t('importNodes.title') }}</template>
         <template #footer>
             <button
                 @click="emit('update:show', false)"
                 class="px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-semibold text-sm misub-radius-lg transition-colors"
             >
-                取消
+                {{ t('actions.cancel') }}
             </button>
             <button
                 v-if="activeTab === 'url'"
@@ -270,15 +280,13 @@
                 :disabled="isLoading || !subscriptionUrl.trim()"
                 class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm misub-radius-lg transition-colors disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-                导入
+                {{ t('actions.import') }}
             </button>
         </template>
         <template #body>
             <div class="space-y-4">
                 <!-- 来源切换 -->
-                <div
-                    class="grid grid-cols-2 gap-1 p-1 bg-gray-100 dark:bg-white/5 misub-radius-lg"
-                >
+                <div class="grid grid-cols-2 gap-1 p-1 bg-gray-100 dark:bg-white/5 misub-radius-lg">
                     <button
                         type="button"
                         class="py-1.5 text-sm font-medium misub-radius-md transition-colors"
@@ -289,7 +297,7 @@
                         "
                         @click="activeTab = 'url'"
                     >
-                        订阅链接
+                        {{ t('importNodes.subscriptionUrl') }}
                     </button>
                     <button
                         type="button"
@@ -301,7 +309,7 @@
                         "
                         @click="activeTab = 'file'"
                     >
-                        上传文件
+                        {{ t('importNodes.tabFile') }}
                     </button>
                 </div>
 
@@ -310,12 +318,12 @@
                     <label
                         class="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1.5 ml-1 block"
                     >
-                        导入分组
+                        {{ t('importNodes.targetGroup') }}
                     </label>
                     <GroupSelector
                         v-model="groupName"
                         :groups="groups"
-                        placeholder="选择或输入分组（可选）"
+                        :placeholder="t('importNodes.targetGroupPlaceholder')"
                         class="w-full"
                     />
                 </div>

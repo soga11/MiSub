@@ -13,8 +13,7 @@ const SAMPLE_TROJAN =
     'trojan://Trojan%4082164024@ca.tronsg.com:443?sni=ca.tronsg.com&security=tls&type=tcp#ca';
 const SAMPLE_SS = 'ss://YWVzLTI1Ni1nY206cGFzc3dvcmQ@1.2.3.4:8388#ssnode';
 
-const count = (content) =>
-    parseNodeList(content).filter((node) => node && node.url).length;
+const count = (content) => parseNodeList(content).filter((node) => node && node.url).length;
 
 describe('parseNodeList supports uploaded file formats', () => {
     it('parses plaintext node links', () => {
@@ -45,6 +44,14 @@ describe('parseNodeList supports uploaded file formats', () => {
     password: testpass
 `;
         expect(count(yaml)).toBe(2);
+    });
+
+    it('parses Clash HTTP proxies with plaintext credentials during file import', () => {
+        const yaml = `proxies:\n  - name: \"office-http\"\n    type: http\n    server: 192.0.2.10\n    port: 8080\n    username: alice\n    password: secret\n    tls: false\n`;
+        const nodes = parseNodeList(yaml).filter((node) => node && node.url);
+        expect(nodes).toHaveLength(1);
+        expect(nodes[0].url).toBe('http://alice:secret@192.0.2.10:8080#office-http');
+        expect(nodes[0].protocol).toBe('http');
     });
 
     it('parses full clash meta config (proxies + rules)', () => {

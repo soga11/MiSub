@@ -54,7 +54,7 @@
             return `${baseClass} bg-gray-300 text-gray-500 cursor-not-allowed`;
         }
 
-        return `${baseClass} bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`;
+        return `${baseClass} bg-indigo-600 text-white hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500`;
     });
 </script>
 

@@ -98,7 +98,7 @@
             <!-- Icon Slot/Prop -->
             <div
                 v-if="hasIcon"
-                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500 transition-colors"
+                class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-500 dark:text-gray-400 group-focus-within:text-primary-500 transition-colors"
             >
                 <slot name="icon">
                     <svg
@@ -141,11 +141,13 @@
                 :type="type"
                 :placeholder="placeholder"
                 :disabled="disabled"
-                class="w-full bg-white dark:bg-white/[0.035] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-[var(--text-primary-dark)] placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/70 dark:focus:border-primary-400/60 focus:outline-none transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="w-full bg-white dark:bg-white/[0.035] border border-gray-200 dark:border-white/10 text-gray-900 dark:text-[var(--text-primary-dark)] placeholder-gray-400 dark:placeholder-gray-500 focus-visible:ring-2 focus-visible:ring-primary-500/30 focus:border-primary-500/70 dark:focus:border-primary-400/60 focus-visible:outline-none transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                 :class="[
                     currentSize.input,
                     hasIcon || hasPrefix ? 'pl-9' : '',
-                    error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50' : '',
+                    error
+                        ? 'border-red-500 focus:border-red-500 focus-visible:ring-red-500/50'
+                        : '',
                 ]"
             />
 

@@ -1,4 +1,7 @@
 <script setup>
+    import { useI18n } from '../../../../i18n/index.js';
+
+    const { t } = useI18n();
     const props = defineProps({
         nodes: {
             type: Array,
@@ -92,7 +95,7 @@
                                 {{ parseNodeInfo(node).protocol }}
                             </span>
                             <span
-                                class="truncate text-[10px] text-gray-400 dark:text-gray-500 font-mono tracking-tighter uppercase"
+                                class="truncate text-[10px] text-gray-500 dark:text-gray-400 font-mono tracking-tighter uppercase"
                             >
                                 {{ parseNodeInfo(node).server.split('.').slice(-2).join('.') }} :
                                 {{ parseNodeInfo(node).port }}
@@ -105,11 +108,12 @@
                 <button
                     v-if="!selectionMode"
                     @click.stop="emit('copy', node, node.url)"
-                    class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-50 text-gray-400 transition-all active:bg-indigo-600 active:text-white dark:bg-white/5"
+                    class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gray-50 text-gray-500 dark:text-gray-400 transition-all active:bg-indigo-600 active:text-white dark:bg-white/5"
                     :class="{
                         'text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10':
                             copiedNodeId === node.url,
                     }"
+                    :aria-label="t('actions.copyNode')"
                 >
                     <svg
                         v-if="copiedNodeId !== node.url"
@@ -214,7 +218,7 @@
                         <div class="flex items-center justify-between">
                             <div class="min-w-0">
                                 <div
-                                    class="text-[11px] text-gray-400 dark:text-gray-500 mb-0.5 font-medium uppercase tracking-tighter"
+                                    class="text-[11px] text-gray-500 dark:text-gray-400 mb-0.5 font-medium uppercase tracking-tighter"
                                 >
                                     Endpoint
                                 </div>
@@ -234,6 +238,7 @@
                                     'opacity-100 bg-green-500 text-white':
                                         copiedNodeId === node.url,
                                 }"
+                                :aria-label="t('actions.copyNode')"
                             >
                                 <svg
                                     v-if="copiedNodeId !== node.url"

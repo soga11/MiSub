@@ -126,7 +126,7 @@ export function validateForm(formData, rules) {
 
         // 必填验证
         if (fieldRules.required && (!value || value.toString().trim() === '')) {
-            fieldErrors.push(fieldRules.required || `${field}不能为空`);
+            fieldErrors.push(fieldRules.required || t('validation.fieldRequired', { field }));
         }
 
         // 如果值为空且不是必填，跳过其他验证
@@ -139,17 +139,17 @@ export function validateForm(formData, rules) {
             switch (fieldRules.type) {
                 case 'url':
                     if (!isValidUrl(value)) {
-                        fieldErrors.push('请输入有效的URL');
+                        fieldErrors.push(t('validation.invalidUrl'));
                     }
                     break;
                 case 'email':
                     if (!isValidEmail(value)) {
-                        fieldErrors.push('请输入有效的邮箱地址');
+                        fieldErrors.push(t('validation.invalidEmail'));
                     }
                     break;
                 case 'nodeUrl':
                     if (!isValidNodeUrl(value)) {
-                        fieldErrors.push('请输入有效的节点URL');
+                        fieldErrors.push(t('validation.invalidNodeUrl'));
                     }
                     break;
             }
@@ -157,11 +157,11 @@ export function validateForm(formData, rules) {
 
         // 长度验证
         if (fieldRules.minLength && value.length < fieldRules.minLength) {
-            fieldErrors.push(`最少需要${fieldRules.minLength}个字符`);
+            fieldErrors.push(t('validation.minLength', { count: fieldRules.minLength }));
         }
 
         if (fieldRules.maxLength && value.length > fieldRules.maxLength) {
-            fieldErrors.push(`最多允许${fieldRules.maxLength}个字符`);
+            fieldErrors.push(t('validation.maxLength', { count: fieldRules.maxLength }));
         }
 
         // 自定义验证
@@ -191,12 +191,12 @@ export function validateForm(formData, rules) {
 export function validateSubscription(subscription) {
     const rules = {
         name: {
-            required: '订阅名称不能为空',
+            required: t('validation.subscriptionNameRequired'),
             minLength: 1,
             maxLength: 100,
         },
         url: {
-            required: '订阅URL不能为空',
+            required: t('validation.subscriptionUrlRequired'),
             type: 'url',
         },
     };
@@ -212,7 +212,7 @@ export function validateSubscription(subscription) {
 export function validateProfile(profile) {
     const rules = {
         name: {
-            required: '配置名称不能为空',
+            required: t('validation.profileNameRequired'),
             minLength: 1,
             maxLength: 100,
         },
@@ -227,7 +227,7 @@ export function validateProfile(profile) {
                 if (value.startsWith('builtin:')) {
                     const templateName = value.slice(8).trim();
                     if (!templateName) {
-                        return 'builtin: 模板名称不能为空';
+                        return `builtin: ${t('validation.templateNameEmpty')}`;
                     }
                     return null;
                 }
@@ -235,14 +235,14 @@ export function validateProfile(profile) {
                 if (value.startsWith('custom:')) {
                     const templateName = value.slice(7).trim();
                     if (!templateName) {
-                        return 'custom: 模板名称不能为空';
+                        return `custom: ${t('validation.templateNameEmpty')}`;
                     }
                     return null;
                 }
 
                 // 其他情况必须是有效的 URL
                 if (!isValidUrl(value)) {
-                    return '请输入有效的外部规则模板URL，或留空使用内置模板';
+                    return t('validation.invalidTransformUrl');
                 }
                 return null;
             },

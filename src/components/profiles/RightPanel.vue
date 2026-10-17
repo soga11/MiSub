@@ -164,7 +164,7 @@
                 }}</label>
                 <select
                     v-model="selectedId"
-                    class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-800/70 border border-gray-200/80 dark:border-white/10 misub-radius-lg shadow-sm focus:outline-hidden focus:ring-2 focus:ring-primary-500/40 focus:border-primary-500 text-sm text-gray-900 dark:text-white input-enhanced"
+                    class="w-full px-3 py-2.5 bg-white/80 dark:bg-gray-800/70 border border-gray-200/80 dark:border-white/10 misub-radius-lg shadow-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary-500/40 focus:border-primary-500 text-sm text-gray-900 dark:text-white input-enhanced"
                 >
                     <option value="default">
                         {{ t('dashboard.linkCard.defaultSubscription') }}
@@ -208,24 +208,26 @@
                     :value="subLink"
                     readonly
                     :disabled="!isLinkValid"
-                    class="w-full min-h-12 text-sm text-gray-600 dark:text-gray-300 bg-gray-100/80 dark:bg-gray-800/60 misub-radius-lg pl-3 pr-24 py-3 border border-gray-200/70 dark:border-white/10 focus:outline-hidden focus:ring-2 font-mono input-enhanced"
+                    class="w-full min-h-12 text-sm text-gray-600 dark:text-gray-300 bg-gray-100/80 dark:bg-gray-800/60 misub-radius-lg pl-3 pr-24 py-3 border border-gray-200/70 dark:border-white/10 focus-visible:outline-hidden focus-visible:ring-2 font-mono input-enhanced"
                     :class="{
-                        'focus:ring-primary-500': isLinkValid,
-                        'focus:ring-red-500 cursor-not-allowed': !isLinkValid,
+                        'focus-visible:ring-primary-500': isLinkValid,
+                        'focus-visible:ring-red-500 cursor-not-allowed': !isLinkValid,
                         'text-red-500 dark:text-red-500': !isLinkValid,
                     }"
+                    :aria-label="t('dashboard.linkCard.linkField')"
                 />
                 <div class="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     <button
                         @click="$emit('qrcode', subLink, t('dashboard.linkCard.qrTitle'))"
                         :disabled="!isLinkValid"
-                        class="flex h-11 w-11 items-center justify-center misub-radius-md text-gray-400 transition-colors duration-200"
+                        class="flex h-11 w-11 items-center justify-center misub-radius-md text-gray-500 dark:text-gray-400 transition-colors duration-200"
                         :class="
                             isLinkValid
                                 ? 'hover:text-primary-600 hover:bg-white/80 dark:hover:bg-gray-800'
                                 : 'cursor-not-allowed'
                         "
                         :title="t('dashboard.linkCard.showQrCode')"
+                        :aria-label="t('dashboard.linkCard.showQrCode')"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -250,13 +252,14 @@
                     <button
                         @click="copyToClipboard"
                         :disabled="!isLinkValid"
-                        class="flex h-11 w-11 items-center justify-center misub-radius-md text-gray-400 transition-colors duration-200"
+                        class="flex h-11 w-11 items-center justify-center misub-radius-md text-gray-500 dark:text-gray-400 transition-colors duration-200"
                         :class="
                             isLinkValid
                                 ? 'hover:text-primary-600 hover:bg-white/80 dark:hover:bg-gray-800'
                                 : 'cursor-not-allowed'
                         "
                         :title="t('dashboard.linkCard.copyLink')"
+                        :aria-label="t('dashboard.linkCard.copyLink')"
                     >
                         <Transition name="fade" mode="out-in">
                             <svg

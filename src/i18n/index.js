@@ -1,4 +1,5 @@
 import { computed, inject, readonly, ref } from 'vue';
+import { readRawPreference, writeRawPreference } from '../utils/local-preference.js';
 import { messages } from './messages.js';
 
 export const DEFAULT_LOCALE = 'zh-CN';
@@ -11,26 +12,14 @@ export const SUPPORTED_LOCALES = [
 const supportedCodes = new Set(SUPPORTED_LOCALES.map((item) => item.code));
 const I18N_KEY = Symbol('misub-i18n');
 
-function canUseLocalStorage() {
-    return typeof localStorage !== 'undefined';
-}
-
 function readStoredLocale() {
-    if (!canUseLocalStorage()) return '';
-    try {
-        return localStorage.getItem(LOCALE_STORAGE_KEY) || '';
-    } catch {
-        return '';
-    }
+    return readRawPreference(LOCALE_STORAGE_KEY) || '';
 }
 
 function writeStoredLocale(locale) {
-    if (!canUseLocalStorage()) return;
-    try {
-        localStorage.setItem(LOCALE_STORAGE_KEY, locale);
-    } catch {
-        // Ignore storage failures in private/incognito contexts.
-    }
+    // 写入失败（隐私模式 / 存储被禁用）只影响「下次启动的语言」，
+    // 本次切换已经生效，不需要打扰用户。
+    writeRawPreference(LOCALE_STORAGE_KEY, locale);
 }
 
 export function hasStoredLocale() {

@@ -83,45 +83,30 @@ describe('handleProfileMode preview transforms', () => {
         expect(result.nodes[0].url).toContain('#Renamed%20Node');
     });
 
-    it('automatically previews manual nodes added after an opted-in profile was saved', async () => {
+    it('keeps an HTTP proxy subscription node separate from an HTTPS source URL', async () => {
+        const targetSubscriptions = [
+            { id: 'subscription-http', enabled: true, url: 'https://sub.example.com/link', name: 'HTTPS source' },
+            { id: 'node-http', enabled: true, url: 'http://alice:***@192.0.2.10:8080/#office-http', name: 'Office HTTP' },
+        ];
         createAdapter.mockReturnValue({
             getProfileById: vi.fn().mockResolvedValue({
-                id: 'profile-auto',
-                enabled: true,
-                subscriptions: [],
-                manualNodes: [],
-                autoIncludeManualNodes: true,
+                id: 'profile-http', enabled: true, subscriptions: ['subscription-http', 'node-http'], manualNodes: [], operators: [],
             }),
-            getAllSubscriptions: vi.fn().mockResolvedValue([
-                {
-                    id: 'node-added-later',
-                    enabled: true,
-                    url: 'trojan://password@example.com:443#Added%20Later',
-                    name: 'Added Later',
-                },
-                {
-                    id: 'remote-sub',
-                    enabled: true,
-                    url: 'https://example.com/sub',
-                    name: 'Remote',
-                },
-            ]),
+            getSubscriptionsByIds: vi.fn().mockResolvedValue(targetSubscriptions),
             get: vi.fn().mockResolvedValue({ defaultOperators: [] }),
         });
 
-        const { handleProfileMode } =
-            await import('../../functions/modules/subscription/profile-handler.js');
+        const { handleProfileMode } = await import('../../functions/modules/subscription/profile-handler.js');
         const result = await handleProfileMode(
-            new Request('https://example.com/api/subscription_nodes'),
-            {},
-            'profile-auto',
-            'MiSub-Test/1.0',
-            true,
-            false
+            new Request('https://example.com/api/subscription_nodes'), {}, 'profile-http', 'MiSub-Test/1.0', false, false
         );
 
         expect(result.success).toBe(true);
-        expect(result.nodes).toHaveLength(1);
-        expect(result.nodes[0].name).toBe('Added Later');
+        expect(result.nodes.map((node) => node.name)).toContain('Office HTTP');
+        expect(fetchSubscriptionNodes).toHaveBeenCalledTimes(1);
+        expect(fetchSubscriptionNodes).toHaveBeenCalledWith(
+            'https://sub.example.com/link', 'HTTPS source', expect.any(String), undefined,
+            false, undefined, undefined, false, false, false
+        );
     });
 });

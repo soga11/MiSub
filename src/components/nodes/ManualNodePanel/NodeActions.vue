@@ -2,6 +2,7 @@
     import { computed } from 'vue';
     import MoreActionsMenu from '@/components/shared/MoreActionsMenu.vue';
     import { useI18n } from '@/i18n/index.js';
+    import { DEFAULT_GROUP_KEY } from '@/composables/manual-nodes/groups.js';
 
     const { t } = useI18n();
 
@@ -93,10 +94,10 @@
                         {{ t('manualNodes.allGroups') }}
                     </button>
                     <button
-                        @click="emit('set-group-filter', '默认')"
+                        @click="emit('set-group-filter', DEFAULT_GROUP_KEY)"
                         class="px-2.5 py-1 text-xs font-medium misub-radius-md transition-all border shrink-0 whitespace-nowrap"
                         :class="
-                            activeGroupFilter === '默认'
+                            activeGroupFilter === DEFAULT_GROUP_KEY
                                 ? 'bg-indigo-100 text-indigo-700 border-indigo-200 dark:bg-indigo-900 dark:text-indigo-300 dark:border-indigo-700'
                                 : 'bg-white text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
                         "
@@ -145,10 +146,11 @@
                         type="text"
                         v-model="searchModel"
                         :placeholder="t('manualNodes.searchPlaceholder')"
-                        class="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm shadow-xs focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-white/5"
+                        class="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm shadow-xs focus:border-indigo-500 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-indigo-500 dark:border-white/10 dark:bg-white/5"
+                        :aria-label="t('manualNodes.searchLabel')"
                     />
                     <svg
-                        class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+                        class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -167,12 +169,13 @@
                 >
                     <button
                         @click="emit('update:viewMode', 'card')"
-                        class="view-mode-toggle p-1.5 misub-radius-sm transition-colors flex items-center justify-center"
+                        class="view-mode-toggle p-1.5 misub-radius-sm transition-colors flex items-center justify-center touch-target"
                         :class="
                             viewMode === 'card'
                                 ? 'bg-white dark:bg-gray-900 text-indigo-600'
                                 : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
                         "
+                        :aria-label="t('common.cardView')"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -187,12 +190,13 @@
                     </button>
                     <button
                         @click="emit('update:viewMode', 'list')"
-                        class="view-mode-toggle p-1.5 misub-radius-sm transition-colors flex items-center justify-center"
+                        class="view-mode-toggle p-1.5 misub-radius-sm transition-colors flex items-center justify-center touch-target"
                         :class="
                             viewMode === 'list'
                                 ? 'bg-white dark:bg-gray-900 text-indigo-600'
                                 : 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white'
                         "
+                        :aria-label="t('common.listView')"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -320,10 +324,10 @@
                 {{ t('manualNodes.allGroups') }}
             </button>
             <button
-                @click="emit('set-group-filter', '默认')"
+                @click="emit('set-group-filter', DEFAULT_GROUP_KEY)"
                 class="px-3 py-1 text-xs font-medium misub-radius-md transition-all border shrink-0"
                 :class="
-                    activeGroupFilter === '默认'
+                    activeGroupFilter === DEFAULT_GROUP_KEY
                         ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-700/50 dark:text-indigo-300'
                         : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700'
                 "

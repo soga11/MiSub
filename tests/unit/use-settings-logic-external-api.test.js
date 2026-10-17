@@ -50,6 +50,30 @@ describe('useSettingsLogic externalApi normalization', () => {
         expect(settings.value.externalApi.tokens).toEqual([{ name: 'default', token: '' }]);
     });
 
+    it('shows a visible reload countdown and reloads automatically after saving', async () => {
+        vi.useFakeTimers();
+        saveSettings.mockResolvedValue({ success: true });
+        const reload = vi.fn();
+        const originalReload = window.location.reload;
+        window.location.reload = reload;
+
+        try {
+            const { settings, handleSave, restartCountdown } = useSettingsLogic();
+            settings.value.storageType = 'kv';
+
+            expect(await handleSave()).toBe(true);
+            expect(restartCountdown.value).toBe(3);
+            await vi.advanceTimersByTimeAsync(1000);
+            expect(restartCountdown.value).toBe(2);
+            await vi.advanceTimersByTimeAsync(2000);
+            expect(reload).toHaveBeenCalledTimes(1);
+            expect(restartCountdown.value).toBe(0);
+        } finally {
+            window.location.reload = originalReload;
+            vi.useRealTimers();
+        }
+    });
+
     it('normalizes blank token names before saving', async () => {
         saveSettings.mockResolvedValue({ success: true });
         const originalReload = window.location.reload;

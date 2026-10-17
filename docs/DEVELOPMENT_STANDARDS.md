@@ -6,7 +6,8 @@ type: architecture
 status: active
 tags: [misub, architecture, frontend, backend, standards, conventions, testing]
 sources: [package.json, src, functions, tests/unit]
-related: [architecture/module-map, architecture/frontend-visual-system, SCHEMA, api/frontend-api-usage]
+related:
+    [architecture/module-map, architecture/frontend-visual-system, SCHEMA, api/frontend-api-usage]
 ---
 
 # Development Standards
@@ -41,9 +42,9 @@ MiSub 前后端开发规范。所有新代码与重构应遵循本页约定；�
 
 - Vue 3 SFC，**一律 `<script setup>`**（126/126 已符合），纯 JS（不引 TS）。
 - 组件目录职责：
-  - `src/components/ui/*`：基础原子组件（Button、Input），**禁止在业务页面复制一套按钮/输入框风格**。
-  - `src/components/shared/*`：共享复合组件（FormModal）。
-  - `src/components/features/*` / `modals/*` / `forms/*` / `layout/*` / `nodes/*` / `profiles/*` / `settings/*` / `subscriptions/*` / `public/*`：按业务域组织。
+    - `src/components/ui/*`：基础原子组件（Button、Input），**禁止在业务页面复制一套按钮/输入框风格**。
+    - `src/components/shared/*`：共享复合组件（FormModal）。
+    - `src/components/features/*` / `modals/*` / `forms/*` / `layout/*` / `nodes/*` / `profiles/*` / `settings/*` / `subscriptions/*` / `public/*`：按业务域组织。
 - 页面在 `src/views/*`，路由在 `src/router/index.js`。
 - 状态用 Pinia（`src/stores/*`）；可复用逻辑放 composable（`src/composables/*`）。
 - API 调用统一走 `src/lib/api.js` + `src/constants/api-endpoints.js` 常量，**禁止在组件里硬编码 API 路径字面量**。
@@ -54,11 +55,11 @@ MiSub 前后端开发规范。所有新代码与重构应遵循本页约定；�
 
 - Cloudflare Pages Functions，入口 `functions/[[path]].js`。
 - 分层职责：
-  - `functions/modules/handlers/*`：API controller（HTTP 语义、入参校验、响应组装）。
-  - `functions/modules/subscription/*`：订阅链路专用模块（转换、缓存、预览、UA、DNS、分组）。
-  - `functions/modules/*.js`：路由 / 鉴权 / 外部 API / 工具。
-  - `functions/services/*`：跨模块业务服务（订阅核心、渲染编排、日志、通知）。
-  - `functions/utils/*` + `functions/modules/utils/*`：纯工具函数，无副作用。
+    - `functions/modules/handlers/*`：API controller（HTTP 语义、入参校验、响应组装）。
+    - `functions/modules/subscription/*`：订阅链路专用模块（转换、缓存、预览、UA、DNS、分组）。
+    - `functions/modules/*.js`：路由 / 鉴权 / 外部 API / 工具。
+    - `functions/services/*`：跨模块业务服务（订阅核心、渲染编排、日志、通知）。
+    - `functions/utils/*` + `functions/modules/utils/*`：纯工具函数，无副作用。
 - 数据访问统一走 `functions/storage-adapter.js`（KV/D1 抽象），**禁止直接调 `env.KV` / `env.DB`**。
 - 订阅输出格式差异隔离在 transformer/generator/renderer 层。
 - 超过 ~800 行的文件应拆（当前最大 `handlers/telegram-webhook-handler.js` 2790 行为拆分候选）。
@@ -69,8 +70,8 @@ MiSub 前后端开发规范。所有新代码与重构应遵循本页约定；�
 - 行为变更用 TDD：先写复现失败的测试，再修复，再跑针对性测试。
 - 涉及外部资源（订阅 URL、cookie、token、webhook）必须用 sanitized fixtures，**禁止真实凭据进测试/提交**。
 - 提交前必跑：
-  - `npm run test:run`（全量，基线 571 全绿）
-  - `npm run build`
+    - `npm run test:run`（全量，基线 571 全绿）
+    - `npm run build`
 
 ## Git / Commit
 

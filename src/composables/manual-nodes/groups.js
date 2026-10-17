@@ -1,3 +1,16 @@
+/**
+ * 「未分组」过滤器的哨兵值。
+ *
+ * 它是**纯 UI 哨兵**，不会写进节点数据：无分组的节点 `node.group` 是空值，
+ * 过滤时靠 `!node.group` 判断（见 filters.js）。
+ *
+ * ⚠️ 必须是固定常量，不能换成 `t('manualNodes.defaultGroup')`。
+ * 那个 key 是给用户看的**显示文案**（中文「默认」/ 英文 "Default"），
+ * 一旦拿它当哨兵，英文界面下过滤器发出的值与比较用的值就对不上 ——
+ * NodeSelector.vue 曾经就是这么写的，导致英文下点「未分组」筛出 0 条。
+ */
+export const DEFAULT_GROUP_KEY = '默认';
+
 export function normalizeManualNodeGroupName(groupName) {
     return typeof groupName === 'string' ? groupName.trim() : '';
 }
@@ -46,10 +59,10 @@ export function buildGroupedManualNodes(nodesToDisplay, manualNodeGroups) {
     manualNodeGroups.forEach((group) => {
         groups[group] = [];
     });
-    groups['默认'] = []; // Default group for ungrouped nodes
+    groups[DEFAULT_GROUP_KEY] = []; // Default group for ungrouped nodes
 
     nodesToDisplay.forEach((node) => {
-        const groupName = normalizeManualNodeGroupName(node.group) || '默认';
+        const groupName = normalizeManualNodeGroupName(node.group) || DEFAULT_GROUP_KEY;
         if (!groups[groupName]) {
             groups[groupName] = [];
         }

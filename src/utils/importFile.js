@@ -11,6 +11,7 @@
  * 这些格式后端 parseNodeList 已能识别，因此这里只负责「拿到正确文本」：
  * 必要的解包（base64 包裹、JSON 外壳）交给后端，避免前端重复实现解析器。
  */
+import { t } from '../i18n/index.js';
 
 /** 单个文件大小上限（字节）——后端 JSON body 限制为 2MB，留出余量。 */
 export const MAX_IMPORT_FILE_SIZE = 1.5 * 1024 * 1024;
@@ -37,7 +38,7 @@ export function readFileAsText(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(String(reader.result || ''));
-        reader.onerror = () => reject(reader.error || new Error('读取文件失败'));
+        reader.onerror = () => reject(reader.error || new Error(t('fileImport.readFailed')));
         reader.readAsText(file);
     });
 }
@@ -49,7 +50,12 @@ export function readFileAsText(file) {
 export function assertFileSize(file) {
     if (file && typeof file.size === 'number' && file.size > MAX_IMPORT_FILE_SIZE) {
         const mb = (MAX_IMPORT_FILE_SIZE / 1024 / 1024).toFixed(1);
-        throw new Error(`文件过大（${(file.size / 1024 / 1024).toFixed(1)}MB），请拆分后导入或使用单文件小于 ${mb}MB 的文件`);
+        throw new Error(
+            t('fileImport.tooLarge', {
+                size: (file.size / 1024 / 1024).toFixed(1),
+                limit: mb,
+            })
+        );
     }
 }
 

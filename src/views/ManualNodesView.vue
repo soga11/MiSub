@@ -12,6 +12,7 @@
     import SubscriptionImportModal from '../components/modals/SubscriptionImportModal.vue';
     import BatchGroupModal from '../components/modals/BatchGroupModal.vue'; // Added
     import { useI18n } from '../i18n/index.js';
+    import { readRawPreference, writeRawPreference } from '../utils/local-preference.js';
 
     const GroupManagementModal = defineAsyncComponent(
         () => import('../components/modals/GroupManagementModal.vue')
@@ -24,7 +25,7 @@
 
     // Component Logic Reuse
     const isSortingNodes = ref(false);
-    const manualNodeViewMode = ref(localStorage.getItem('manualNodeViewMode') || 'card');
+    const manualNodeViewMode = ref(readRawPreference('manualNodeViewMode') || 'card');
     const showDeleteNodesModal = ref(false);
     const showBatchDeleteModal = ref(false);
     const batchDeleteIds = ref([]);
@@ -52,8 +53,6 @@
         buildDedupPlan,
         applyDedupPlan,
         reorderManualNodes,
-        moveNodeToTop,
-        duplicateNode,
         manualNodeGroups,
         renameGroup,
         deleteGroup,
@@ -87,7 +86,7 @@
     // Actions
     const setViewMode = (mode) => {
         manualNodeViewMode.value = mode;
-        localStorage.setItem('manualNodeViewMode', mode);
+        writeRawPreference('manualNodeViewMode', mode);
     };
 
     const handleDeleteNodeWithCleanup = (nodeId) => {
@@ -205,8 +204,6 @@
             @import="showSubscriptionImportModal = true"
             @delete-all="showDeleteNodesModal = true"
             @reorder="reorderManualNodes"
-            @move-to-top="moveNodeToTop"
-            @duplicate="duplicateNode"
             @rename-group="renameGroup"
             @set-group-filter="setGroupFilter"
             @batch-update-group="(ids, group) => batchUpdateGroup(ids, group)"
@@ -259,7 +256,9 @@
                 </h3>
             </template>
             <template #body>
-                <p class="text-sm text-gray-400">{{ t('manualNodes.deleteAllConfirmBody') }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    {{ t('manualNodes.deleteAllConfirmBody') }}
+                </p>
             </template>
         </Modal>
 

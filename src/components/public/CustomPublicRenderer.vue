@@ -4,9 +4,11 @@
     import DOMPurify from 'dompurify';
     import { useThemeStore } from '../../stores/theme.js';
     import { parseCustomPageSource } from '../../utils/custom-page-source.js';
+    import { useI18n } from '../../i18n/index.js';
 
     const route = useRoute();
     const themeStore = useThemeStore();
+    const { t } = useI18n();
 
     const props = defineProps({
         content: {
@@ -292,7 +294,16 @@
                     <button
                         @click="themeStore.toggleTheme"
                         class="theme-toggle-btn p-2 rounded-full border border-gray-200 dark:border-white/10 bg-white/80 dark:bg-black/40 backdrop-blur-md shadow-sm transition-all active:scale-90"
-                        :title="themeStore.theme === 'dark' ? '切换到浅色' : '切换到深色'"
+                        :title="
+                            themeStore.theme === 'dark'
+                                ? t('common.switchToLight')
+                                : t('common.switchToDark')
+                        "
+                        :aria-label="
+                            themeStore.theme === 'dark'
+                                ? t('common.switchToLight')
+                                : t('common.switchToDark')
+                        "
                     >
                         <svg
                             v-if="themeStore.theme === 'dark'"

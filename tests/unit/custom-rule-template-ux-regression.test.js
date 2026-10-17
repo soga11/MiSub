@@ -1,9 +1,16 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import TransformSelector from '../../src/components/forms/TransformSelector.vue';
 import RuleTemplateManager from '../../src/components/settings/sections/ServiceSettings/RuleTemplateManager.vue';
 import { useDataStore } from '../../src/stores/useDataStore.js';
+import { setLocale } from '../../src/i18n/index.js';
+
+// happy-dom 的 navigator.language 是 en-US，i18n 单例会据此选英文；
+// 下面断言的是中文文案，所以先把语言钉死，否则断言随运行环境漂移。
+beforeEach(() => {
+    setLocale('zh-CN');
+});
 
 vi.mock('../../src/services/api.js', () => ({
     default: {
@@ -125,6 +132,26 @@ describe('Custom rule template UX regressions', () => {
         expect(helper).toContain('<%protocolGroupCounts%>');
         expect(helper).toContain('<%protocol_group_list%>');
         expect(helper).toContain('<%protocolGroupList%>');
+    });
+
+    it('模板变量说明会随语言切换即时更新（锁定 computed 的响应式依赖）', async () => {
+        const wrapper = mountWithStore(TransformSelector, {
+            props: {
+                modelValue: '',
+                type: 'config',
+            },
+        });
+
+        await wrapper.find('button[aria-expanded="false"]').trigger('click');
+        expect(wrapper.text()).toContain('代理节点片段');
+
+        setLocale('en-US');
+        await wrapper.vm.$nextTick();
+
+        expect(wrapper.text()).toContain('Proxy node snippet');
+        expect(wrapper.text()).not.toContain('代理节点片段');
+        // 变量名本身是技术标记，任何语言下都不能被翻译掉
+        expect(wrapper.text()).toContain('<%proxies%>');
     });
 
     it('warns when a selected custom: template no longer exists or is disabled', () => {

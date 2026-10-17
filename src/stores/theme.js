@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { readRawPreference, writeRawPreference } from '../utils/local-preference.js';
 
 export const useThemeStore = defineStore('theme', () => {
     const theme = ref('light');
 
     function initTheme() {
-        const savedTheme = localStorage.getItem('theme');
+        const savedTheme = readRawPreference('theme');
         if (savedTheme) {
             theme.value = savedTheme;
         } else {
@@ -18,7 +19,7 @@ export const useThemeStore = defineStore('theme', () => {
 
     function toggleTheme() {
         theme.value = theme.value === 'light' ? 'dark' : 'light';
-        localStorage.setItem('theme', theme.value);
+        writeRawPreference('theme', theme.value);
         updateThemeClass();
     }
 

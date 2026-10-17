@@ -128,6 +128,7 @@
     const fetchPublicProfiles = async () => {
         try {
             loading.value = true;
+            error.value = null;
             const data = await api.get('/api/public/profiles');
             if (data.success) {
                 publicProfiles.value = data.data;
@@ -139,10 +140,10 @@
                     setLocale(serverLocale);
                 }
             } else {
-                error.value = data.message || t('publicProfiles.fetchFailed');
+                error.value = t('publicProfiles.fetchFailed');
             }
         } catch (err) {
-            error.value = err.message;
+            error.value = t('publicProfiles.fetchFailed');
             console.error('Fetch error:', err);
         } finally {
             loading.value = false;
@@ -188,6 +189,8 @@
                 clients.value = data.data;
             }
         } catch (e) {
+            // 客户端列表属辅助信息（推荐下载），失败时保持该区块为空即可，不必打扰访客；
+            // 核心订阅数据由 loadProfiles 单独处理并向访客提示。
             console.error('Failed to fetch clients', e);
         }
     };
@@ -267,7 +270,9 @@
                         color: { dark: '#000000', light: '#FFFFFF' },
                     });
                 } catch (err) {
+                    // 生成失败时卡片内是空白，访客会以为功能坏了，需给出提示
                     console.error('Failed to generate QR code:', err);
+                    showToast(t('publicProfiles.qrGenerateFailed'), 'error');
                 }
             }
         }
@@ -424,10 +429,20 @@
             </template>
 
             <template #profiles>
-                <div v-if="loading">...</div>
-                <div v-else-if="error">{{ error }}</div>
+                <div v-if="loading" role="status" aria-live="polite">
+                    {{ t('publicProfiles.loading') }}
+                </div>
+                <div v-else-if="error" role="alert">
+                    <p>{{ error }}</p>
+                    <button type="button" @click="fetchPublicProfiles">
+                        {{ t('publicProfiles.retry') }}
+                    </button>
+                </div>
+                <div v-else-if="publicProfiles.length === 0" role="status">
+                    {{ t('publicProfiles.empty') }}
+                </div>
                 <ProfileGrid
-                    v-else-if="publicProfiles.length > 0"
+                    v-else
                     :profiles="publicProfiles"
                     :is-qr-expanded="isQRExpanded"
                     :profile-token="config.profileToken || 'profiles'"
@@ -576,6 +591,13 @@
                             {{ t('publicProfiles.retry') }}
                         </button>
                     </div>
+                    <div
+                        v-else-if="publicProfiles.length === 0"
+                        role="status"
+                        class="py-16 text-center text-gray-500 dark:text-gray-400"
+                    >
+                        {{ t('publicProfiles.empty') }}
+                    </div>
 
                     <!-- Profile Grid -->
                     <div v-else-if="publicProfiles.length > 0" class="animate-fade-in-up delay-300">
@@ -677,7 +699,7 @@
                                     class="mt-6 flex items-center justify-between pt-4 border-t border-gray-50 dark:border-white/5"
                                 >
                                     <span
-                                        class="text-xs text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-1 misub-radius-md"
+                                        class="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-white/5 px-2 py-1 misub-radius-md"
                                     >
                                         {{ getClientVersionLabel(client) }}
                                     </span>

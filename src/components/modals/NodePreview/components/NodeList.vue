@@ -1,6 +1,9 @@
 <script setup>
     import { computed } from 'vue';
     import { useVirtualScroll } from '@/composables/useVirtualScroll.js';
+    import { useI18n } from '../../../../i18n/index.js';
+
+    const { t } = useI18n();
 
     const props = defineProps({
         nodes: {
@@ -64,7 +67,7 @@
                         class="sticky top-0 z-10 border-b border-gray-100 bg-gray-50/50 backdrop-blur-md dark:border-white/5 dark:bg-gray-800/80"
                     >
                         <div
-                            class="grid min-h-[3.5rem] grid-cols-12 gap-2 px-6 py-3 items-center text-[11px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest"
+                            class="grid min-h-[3.5rem] grid-cols-12 gap-2 px-6 py-3 items-center text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest"
                         >
                             <div
                                 v-if="selectionMode"
@@ -191,11 +194,12 @@
                                         <button
                                             v-if="!selectionMode"
                                             @click.stop="emit('copy', node, node.url)"
-                                            class="inline-flex items-center justify-center w-8 h-8 rounded text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-150"
+                                            class="inline-flex items-center justify-center w-8 h-8 rounded text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-150 touch-target"
                                             :class="{
                                                 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20':
                                                     copiedNodeId === node.url,
                                             }"
+                                            :aria-label="t('actions.copyNode')"
                                         >
                                             <svg
                                                 v-if="copiedNodeId !== node.url"
@@ -237,7 +241,7 @@
                         v-if="nodes.length === 0"
                         class="py-12 text-center text-gray-500 dark:text-gray-400"
                     >
-                        暂无节点数据
+                        {{ t('nodePreview.noNodes') }}
                     </div>
                 </div>
             </div>

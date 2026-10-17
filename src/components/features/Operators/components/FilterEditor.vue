@@ -86,9 +86,10 @@
             <!-- Protocol -->
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <label class="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{{
-                        t('operators.protocolLimit')
-                    }}</label>
+                    <label
+                        class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight"
+                        >{{ t('operators.protocolLimit') }}</label
+                    >
                     <button
                         @click="
                             updateParam('protocols', {
@@ -98,7 +99,9 @@
                         "
                         :class="[
                             'text-[10px] font-medium transition-colors',
-                            params.protocols.enabled ? 'text-indigo-600' : 'text-gray-300',
+                            params.protocols.enabled
+                                ? 'text-indigo-600'
+                                : 'text-gray-500 dark:text-gray-400',
                         ]"
                     >
                         {{ statusLabel(params.protocols.enabled) }}
@@ -127,9 +130,10 @@
             <!-- Region -->
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                    <label class="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{{
-                        t('operators.regionLimit')
-                    }}</label>
+                    <label
+                        class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight"
+                        >{{ t('operators.regionLimit') }}</label
+                    >
                     <button
                         @click="
                             updateParam('regions', {
@@ -139,7 +143,9 @@
                         "
                         :class="[
                             'text-[10px] font-medium transition-colors',
-                            params.regions.enabled ? 'text-indigo-600' : 'text-gray-300',
+                            params.regions.enabled
+                                ? 'text-indigo-600'
+                                : 'text-gray-500 dark:text-gray-400',
                         ]"
                     >
                         {{ statusLabel(params.regions.enabled) }}
@@ -169,7 +175,9 @@
         <!-- Name Rules (Include/Exclude) -->
         <div v-for="type in ['include', 'exclude']" :key="type" class="space-y-2">
             <div class="flex items-center justify-between">
-                <label class="text-[11px] font-bold text-gray-400 uppercase tracking-tight">
+                <label
+                    class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight"
+                >
                     {{
                         t(type === 'include' ? 'operators.includeRegex' : 'operators.excludeRegex')
                     }}
@@ -188,7 +196,9 @@
                         "
                         :class="[
                             'text-[10px] font-medium',
-                            params[type].enabled ? 'text-indigo-600' : 'text-gray-300',
+                            params[type].enabled
+                                ? 'text-indigo-600'
+                                : 'text-gray-500 dark:text-gray-400',
                         ]"
                     >
                         {{ statusLabel(params[type].enabled) }}
@@ -207,10 +217,12 @@
                         @input="normalizeRuleFlags(type, idx)"
                         :placeholder="t('operators.regexPlaceholder')"
                         class="flex-1 px-3 py-1.5 text-[11px] rounded-lg bg-gray-50 dark:bg-gray-900 border border-transparent focus:bg-white dark:focus:bg-gray-800 focus:border-indigo-500/30 transition-all outline-none"
+                        :aria-label="t('operators.regexPlaceholder')"
                     />
                     <button
                         @click="removeRule(type, idx)"
-                        class="p-1.5 text-gray-300 hover:text-rose-500"
+                        class="p-1.5 text-gray-500 dark:text-gray-400 hover:text-rose-500 touch-target"
+                        :aria-label="t('operators.removeRule')"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -223,10 +235,12 @@
                         </svg>
                     </button>
                 </div>
-                <p class="text-[10px] text-gray-400 px-1">{{ t('operators.regexFlagsHint') }}</p>
+                <p class="text-[10px] text-gray-500 dark:text-gray-400 px-1">
+                    {{ t('operators.regexFlagsHint') }}
+                </p>
                 <div
                     v-if="!params[type].rules?.length"
-                    class="text-center py-2 text-[10px] text-gray-400 italic"
+                    class="text-center py-2 text-[10px] text-gray-500 dark:text-gray-400 italic"
                 >
                     {{ t('operators.filterEmptyRules') }}
                 </div>

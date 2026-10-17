@@ -26,6 +26,7 @@ import { StorageFactory } from '../../storage-adapter.js';
 import { clearAllNodeCaches } from '../../services/node-cache-service.js';
 import { createJsonResponse, escapeHtml, JSON_BODY_LIMITS, readJsonWithLimit } from '../utils.js';
 import { KV_KEY_SUBS, KV_KEY_PROFILES, KV_KEY_SETTINGS } from '../config.js';
+import { extractValidNodes } from '../utils/node-parser.js';
 
 // ==================== 存储与配置 ====================
 
@@ -193,6 +194,426 @@ function extractNodeUrls(text) {
     }
 
     return urls;
+}
+
+/**
+ * 从文本中提取订阅链接（http/https）。
+ *
+ * 与 extractNodeUrls 的区别：节点协议要求整行就是链接，而订阅链接常被
+ * 粘贴成「名称: https://...」或一行多个，因此这里用宽松匹配，再按 URL 去重。
+ *
+ * @param {string} text
+ * @returns {string[]} 去重后的订阅链接
+ */
+function extractSubscriptionUrls(text) {
+    const matches = String(text || '').match(/https?:\/\/[^\s<>"'，。、；：！？）】]+/gi) || [];
+    const seen = new Set();
+    const urls = [];
+    for (const raw of matches) {
+        // 去掉尾部常见的标点残留
+        const url = raw.replace(/[.,;:!?]+$/, '');
+        if (!url || seen.has(url)) continue;
+        try {
+            new URL(url);
+        } catch {
+            continue;
+        }
+        seen.add(url);
+        urls.push(url);
+    }
+    return urls;
+}
+
+/** Telegram 单文件下载大小上限（字节），防止大文件拖垮 Worker */
+const TG_MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+/**
+ * 下载 Telegram 消息中的文件/文档内容。
+ *
+ * 流程：getFile 拿 file_path → 从 file 接口拉取正文。
+ * 复用配置里的 bot token，与 webhook 同一来源。
+ *
+ * @param {Object} message Telegram message 对象
+ * @param {Object} config  机器人配置（需含 bot_token）
+ * @returns {Promise<{text: string, fileName: string}>}
+ */
+async function downloadTelegramFile(message, config) {
+    const doc =
+        message?.document || (message?.photo ? message.photo[message.photo.length - 1] : null);
+    if (!doc) return { text: '', fileName: '' };
+
+    // 体积限制
+    const size = Number(doc.file_size || 0);
+    if (size > TG_MAX_FILE_BYTES) {
+        throw new Error(`文件过大（${(size / 1024 / 1024).toFixed(1)}MB），上限 5MB`);
+    }
+
+    const token = config.bot_token;
+    if (!token) throw new Error('未配置 Bot Token');
+
+    // 1. getFile
+    const fileRes = await fetch(
+        `https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(doc.file_id)}`
+    );
+    const fileData = await fileRes.json();
+    if (!fileData?.ok || !fileData.result?.file_path) {
+        throw new Error('获取文件路径失败（文件可能已过期）');
+    }
+
+    // 2. 下载正文
+    const contentRes = await fetch(
+        `https://api.telegram.org/file/bot${token}/${fileData.result.file_path}`
+    );
+    if (!contentRes.ok) {
+        throw new Error(`下载文件失败（HTTP ${contentRes.status}）`);
+    }
+
+    const text = await contentRes.text();
+    return {
+        text,
+        fileName: doc.file_name || fileData.result.file_path.split('/').pop() || 'file',
+    };
+}
+
+/**
+ * 处理 Telegram 文件消息：下载文件 → 提取节点/订阅链接 → 导入。
+ *
+ * 复用 handleNodeInput 的处理链路：把文件内容当作「用户发送的文本」交给它，
+ * 因此订阅链接、节点链接、Clash YAML、sing-box JSON 等全部格式都自动支持。
+ *
+ * @param {number} chatId
+ * @param {Object} message  Telegram message（含 document/photo）
+ * @param {number} userId
+ * @param {Object} config
+ * @param {Object} env
+ * @param {Object|null} requestCache
+ */
+async function handleFileInput(chatId, message, userId, config, env, requestCache = null) {
+    try {
+        await sendTelegramMessage(chatId, '📥 正在读取文件…', env);
+
+        const { text, fileName } = await downloadTelegramFile(message, config);
+        if (!text || !text.trim()) {
+            await sendTelegramMessage(chatId, '❌ 文件内容为空', env);
+            return createJsonResponse({ ok: true });
+        }
+
+        // 优先按「解析出节点」处理；若文件里是订阅链接，则由 handleNodeInput 识别
+        const nodes = extractValidNodes(text);
+        if (nodes.length > 0) {
+            // extractValidNodes 返回节点链接字符串数组
+            const nodeLines = nodes
+                .map((n) => (typeof n === 'string' ? n : n?.url))
+                .filter(Boolean)
+                .join('\n');
+            await sendTelegramMessage(
+                chatId,
+                `📄 解析文件 <b>${fileName}</b>，识别到 <b>${nodes.length}</b> 个节点，正在导入…`,
+                env
+            );
+            return await handleNodeInput(chatId, nodeLines, userId, env, requestCache, {
+                source: 'file',
+                fileName,
+            });
+        }
+
+        // 没有节点：可能是订阅链接列表
+        const subs = extractSubscriptionUrls(text);
+        if (subs.length > 0) {
+            await sendTelegramMessage(
+                chatId,
+                `📄 解析文件 <b>${fileName}</b>，识别到 <b>${subs.length}</b> 个订阅链接，正在导入…`,
+                env
+            );
+            return await handleNodeInput(chatId, subs.join('\n'), userId, env, requestCache, {
+                source: 'file',
+                fileName,
+            });
+        }
+
+        await sendTelegramMessage(
+            chatId,
+            `❌ 未能从文件 <b>${fileName}</b> 中识别到节点或订阅链接\n\n` +
+                '支持的格式：\n' +
+                '1. 节点链接文本（每行一个）\n' +
+                '2. Base64 订阅内容\n' +
+                '3. Clash / Mihomo YAML\n' +
+                '4. sing-box JSON',
+            env
+        );
+        return createJsonResponse({ ok: true });
+    } catch (error) {
+        console.error('[Telegram Push] File handling error:', error);
+        await sendTelegramMessage(chatId, `❌ 处理文件失败：${error.message}`, env);
+        return createJsonResponse({ ok: true });
+    }
+}
+
+/**
+ * 生成 TG 导入的分组名。
+ *
+ * 让同一批（同一条消息 / 同一个文件）导入的节点归入同一分组，
+ * 便于在网页端按组批量管理和加入订阅组。
+ *
+ * @param {Object} options
+ * @param {string} [options.source] 来源标识：file / text
+ * @param {string} [options.fileName] 文件名（file 来源时使用）
+ * @param {Date}   [options.now] 时间（便于测试注入）
+ * @returns {string} 形如「TG-文件 nodes 2026-09-15」或「TG-导入 2026-09-15 18:30」
+ */
+function buildImportGroupName({ source = 'text', fileName = '', now = new Date() } = {}) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const dateStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+    if (source === 'file' && fileName) {
+        // 去掉扩展名，作为分组标识
+        const base = String(fileName)
+            .replace(/\.[a-z0-9]+$/i, '')
+            .trim();
+        if (base) return `TG-${base}-${dateStr}`;
+    }
+
+    const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+    return `TG-导入-${dateStr} ${timeStr}`;
+}
+
+/**
+ * 节点分组选择面板：列出所有分组及数量，点击进入该分组列表。
+ *
+ * 与网站「手动节点 → 分组筛选」对应。用户节点较多时（如 200+），
+ * 先选分组再看列表比直接翻页友好得多。
+ */
+async function handleGroupSelect(
+    chatId,
+    userId,
+    env,
+    messageId = null,
+    type = 'node',
+    requestCache = null
+) {
+    const cache = requestCache || createRequestCache();
+    const allNodes = await getUserNodes(userId, env);
+    const nodes =
+        type === 'sub'
+            ? allNodes.filter((n) => /^https?:\/\//i.test(n.url || ''))
+            : allNodes.filter((n) => !/^https?:\/\//i.test(n.url || ''));
+
+    // 统计分组
+    const groupCounts = new Map();
+    let ungrouped = 0;
+    nodes.forEach((n) => {
+        const g = (n.group || '').trim();
+        if (g) groupCounts.set(g, (groupCounts.get(g) || 0) + 1);
+        else ungrouped++;
+    });
+
+    const title = type === 'sub' ? '\uD83D\uDCE1 选择订阅分组' : '\uD83D\uDE80 选择节点分组';
+    let text = `<b>${title}</b>\n\n共 ${nodes.length} 项`;
+    if (groupCounts.size > 0) {
+        text += `，${groupCounts.size} 个分组`;
+    }
+
+    // 构建分组按钮（每行 2 个）
+    const buttons = [];
+    const entries = Array.from(groupCounts.entries()).sort((a, b) => b[1] - a[1]);
+    for (let i = 0; i < entries.length; i += 2) {
+        const row = [];
+        for (let j = i; j < Math.min(i + 2, entries.length); j++) {
+            const [name, count] = entries[j];
+            // callback_data 有 64 字节限制，长组名需要截断
+            const short = name.length > 20 ? `${name.slice(0, 18)}…` : name;
+            row.push({
+                text: `${short} (${count})`,
+                callback_data: `grp_${type}_${encodeURIComponent(name).slice(0, 40)}`,
+            });
+        }
+        buttons.push(row);
+    }
+
+    // 全部 / 未分组
+    const tail = [{ text: `全部 (${nodes.length})`, callback_data: `grp_${type}___all__` }];
+    if (ungrouped > 0) {
+        tail.push({ text: `未分组 (${ungrouped})`, callback_data: `grp_${type}___none__` });
+    }
+    buttons.push(tail);
+
+    buttons.push([{ text: '\uD83D\uDD19 返回菜单', callback_data: 'cmd_menu' }]);
+
+    const keyboard = { inline_keyboard: buttons };
+
+    if (messageId) {
+        await editTelegramMessage(chatId, messageId, text, env, {
+            reply_markup: keyboard,
+            requestCache,
+        });
+    } else {
+        await sendTelegramMessage(chatId, text, env, { reply_markup: keyboard, requestCache });
+    }
+}
+
+/**
+ * 分组管理面板：列出所有分组，支持重命名、删除、批量改组。
+ *
+ * 对应网站的「批量分组」功能。
+ */
+async function handleGroupManage(
+    chatId,
+    userId,
+    env,
+    messageId = null,
+    type = 'node',
+    requestCache = null
+) {
+    const cache = requestCache || createRequestCache();
+    const allNodes = await getUserNodes(userId, env);
+    const nodes =
+        type === 'sub'
+            ? allNodes.filter((n) => /^https?:\/\//i.test(n.url || ''))
+            : allNodes.filter((n) => !/^https?:\/\//i.test(n.url || ''));
+
+    const groupCounts = new Map();
+    let ungrouped = 0;
+    nodes.forEach((n) => {
+        const g = (n.group || '').trim();
+        if (g) groupCounts.set(g, (groupCounts.get(g) || 0) + 1);
+        else ungrouped++;
+    });
+
+    let text =
+        '\uD83D\uDCC1 <b>分组管理</b>\n\n' +
+        `共 ${nodes.length} 项，${groupCounts.size} 个分组` +
+        (ungrouped > 0 ? `，${ungrouped} 项未分组` : '') +
+        '\n\n点击分组可重命名或删除：';
+
+    const buttons = [];
+    Array.from(groupCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([name, count]) => {
+            const short = name.length > 16 ? `${name.slice(0, 14)}…` : name;
+            buttons.push([
+                {
+                    text: `📁 ${short} (${count})`,
+                    callback_data: `gmgr_${type}_${encodeURIComponent(name).slice(0, 40)}`,
+                },
+            ]);
+        });
+
+    buttons.push([{ text: '🔙 返回菜单', callback_data: 'cmd_menu' }]);
+
+    const keyboard = { inline_keyboard: buttons };
+
+    if (messageId) {
+        await editTelegramMessage(chatId, messageId, text, env, {
+            reply_markup: keyboard,
+            requestCache,
+        });
+    } else {
+        await sendTelegramMessage(chatId, text, env, { reply_markup: keyboard, requestCache });
+    }
+}
+
+/**
+ * 单个分组的操作面板（重命名 / 删除 / 查看）。
+ */
+async function handleGroupActions(
+    chatId,
+    userId,
+    env,
+    messageId,
+    type,
+    groupName,
+    requestCache = null
+) {
+    const cache = requestCache || createRequestCache();
+    const allNodes = await getUserNodes(userId, env);
+    const nodes =
+        type === 'sub'
+            ? allNodes.filter((n) => /^https?:\/\//i.test(n.url || ''))
+            : allNodes.filter((n) => !/^https?:\/\//i.test(n.url || ''));
+    const count = nodes.filter((n) => (n.group || '').trim() === groupName).length;
+
+    const text =
+        `\uD83D\uDCC1 <b>${escapeHtml(groupName)}</b>\n\n` +
+        `包含 ${count} 项\n\n` +
+        '选择要执行的操作：';
+
+    const encoded = encodeURIComponent(groupName).slice(0, 40);
+    const keyboard = {
+        inline_keyboard: [
+            [
+                { text: '✏️ 重命名', callback_data: `gmrn_${type}_${encoded}` },
+                { text: '📋 查看列表', callback_data: `grp_${type}_${encoded}` },
+            ],
+            [
+                { text: '🗑 删除分组', callback_data: `gmrm_${type}_${encoded}` },
+                { text: '🚫 清空该组', callback_data: `gmcl_${type}_${encoded}` },
+            ],
+            [{ text: '🔙 返回', callback_data: `gmls_${type}` }],
+        ],
+    };
+
+    if (messageId) {
+        await editTelegramMessage(chatId, messageId, text, env, {
+            reply_markup: keyboard,
+            requestCache,
+        });
+    } else {
+        await sendTelegramMessage(chatId, text, env, { reply_markup: keyboard, requestCache });
+    }
+}
+
+/**
+ * 执行分组操作。
+ * @param {string} op rename | clear | delete
+ */
+async function applyGroupOperation(
+    chatId,
+    userId,
+    env,
+    type,
+    groupName,
+    op = 'rename',
+    newName = null,
+    requestCache = null
+) {
+    const cache = requestCache || createRequestCache();
+    const storageAdapter = await getCachedStorageAdapter(env, cache);
+    const allSubscriptions = await getCachedSubscriptions(env, cache);
+
+    let changed = 0;
+    allSubscriptions.forEach((sub) => {
+        if ((sub.group || '').trim() !== groupName) return;
+        // 订阅源与节点都按 type 筛选
+        const isSub = /^https?:\/\//i.test(sub.url || '');
+        if (type === 'sub' ? !isSub : isSub) return;
+
+        if (op === 'rename') sub.group = newName;
+        else if (op === 'clear') sub.group = ''; // 清空该组 = 成员变为未分组
+        changed++;
+    });
+
+    if (op === 'delete') {
+        // 删除分组：把成员移除（这里语义同「删除该组内所有项」）
+        const remaining = allSubscriptions.filter((sub) => {
+            const isSub = /^https?:\/\//i.test(sub.url || '');
+            const sameType = type === 'sub' ? isSub : !isSub;
+            const sameGroup = (sub.group || '').trim() === groupName;
+            if (sameType && sameGroup) {
+                changed++;
+                return false;
+            }
+            return true;
+        });
+        await storageAdapter.putAllSubscriptions(remaining);
+    } else {
+        if (changed === 0) return 0;
+        await storageAdapter.putAllSubscriptions(allSubscriptions);
+    }
+
+    // 清理节点缓存，避免前端读到旧数据
+    if (type === 'node') await clearAllNodeCaches(env);
+
+    return changed;
 }
 
 /**
@@ -507,6 +928,8 @@ async function handleHelpCommand(chatId, env) {
         '/rename [序号] [名] - 重命名\n' +
         '/delete [序号] - 删除\n\n' +
         '<b>🔧 工具</b>\n' +
+        '/groups [node|sub] - 分组管理\n' +
+        '/grename [旧组] [新组] - 重命名分组\n' +
         '/bind - 绑定订阅组\n' +
         '/sort [类型] - 排序\n' +
         '/dup - 去重\n' +
@@ -529,10 +952,11 @@ async function handleMenuCommand(chatId, env, messageId = null, requestCache = n
                 { text: '\uD83D\uDCCA 统计', callback_data: 'cmd_stats' }, // 📊
             ],
             [
+                { text: '\uD83D\uDCC1 分组管理', callback_data: 'gmls_node' }, // 📁
                 { text: '\uD83D\uDD17 绑定', callback_data: 'cmd_bind' }, // 🔗
                 { text: '\uD83D\uDD0D 搜索', callback_data: 'prompt_search' }, // 🔍
-                { text: '\u2753 帮助', callback_data: 'cmd_help' }, // ❓
             ],
+            [{ text: '\u2753 帮助', callback_data: 'cmd_help' }], // ❓
             [
                 { text: '\u2705 全启用', callback_data: 'cmd_enable_all' }, // ✅
                 { text: '\u26D4 全禁用', callback_data: 'cmd_disable_all' }, // ⛔
@@ -566,7 +990,8 @@ async function handleListCommand(
     page = 0,
     type = 'all',
     messageId = null,
-    requestCache = null
+    requestCache = null,
+    groupFilter = null
 ) {
     try {
         const cache = requestCache || createRequestCache();
@@ -584,6 +1009,15 @@ async function handleListCommand(
         } else if (type === 'sub') {
             userNodes = allNodes.filter((n) => /^https?:\/\//i.test(n.url || ''));
             title = '\uD83D\uDCE1 机场列表'; // 📡
+        }
+
+        // 按分组过滤（null = 不过滤，'__none__' = 仅未分组）
+        if (groupFilter === '__none__') {
+            userNodes = userNodes.filter((n) => !(n.group || '').trim());
+            title += ' · 未分组';
+        } else if (groupFilter) {
+            userNodes = userNodes.filter((n) => (n.group || '').trim() === groupFilter);
+            title += ` · ${groupFilter}`;
         }
 
         // 获取当前绑定的订阅组
@@ -691,7 +1125,10 @@ async function handleListCommand(
             }); // ➡️
         }
 
-        const backButtonRow = [{ text: '🔙 返回菜单', callback_data: 'cmd_menu' }];
+        const backButtonRow = [
+            { text: '🔙 返回分组', callback_data: `cmd_list_${type === 'sub' ? 'sub' : 'node'}` },
+            { text: '🏠 菜单', callback_data: 'cmd_menu' },
+        ];
 
         const keyboard = {
             inline_keyboard: [nodeButtons, navButtons, backButtonRow],
@@ -1849,7 +2286,9 @@ async function handleUnbindCommand(chatId, userId, env, requestCache = null) {
 /**
  * 处理节点输入（核心逻辑）
  */
-async function handleNodeInput(chatId, text, userId, env, requestCache = null) {
+async function handleNodeInput(chatId, text, userId, env, requestCache = null, options = {}) {
+    // 同一批导入的节点共用一个分组名（文件导入用文件名，文本导入用时间）
+    const importGroupName = options.groupName || buildImportGroupName(options);
     try {
         const cache = requestCache || createRequestCache();
         const config = await getTelegramPushConfig(env, cache);
@@ -1865,28 +2304,25 @@ async function handleNodeInput(chatId, text, userId, env, requestCache = null) {
         let nodeUrls = extractNodeUrls(text);
         let importType = 'node'; // node | subscription
 
-        // 2. 如果未识别到节点，检查是否为 HTTP/HTTPS 订阅链接
-        if (nodeUrls.length === 0) {
-            const trimmedText = text.trim();
-            if (/^https?:\/\//i.test(trimmedText)) {
-                // 简单的 URL 验证
-                try {
-                    new URL(trimmedText);
-                    nodeUrls = [trimmedText];
-                    importType = 'subscription';
-                } catch (e) {
-                    // 无效 URL，忽略
-                }
-            }
+        // 2. 提取订阅链接（支持一条消息里多行/多个订阅链接）
+        const subscriptionUrls = extractSubscriptionUrls(text).filter(
+            (url) => !nodeUrls.includes(url)
+        );
+
+        if (nodeUrls.length > 0 && subscriptionUrls.length > 0) {
+            // 节点与订阅混发：订阅链接优先按订阅导入，节点单独导入
+            importType = 'mixed';
+        } else if (nodeUrls.length === 0 && subscriptionUrls.length > 0) {
+            importType = 'subscription';
         }
 
-        if (nodeUrls.length === 0) {
+        if (nodeUrls.length === 0 && subscriptionUrls.length === 0) {
             await sendTelegramMessage(
                 chatId,
                 '❌ <b>未识别到有效的链接</b>\n\n' +
                     '支持的内容：\n' +
                     '1. 节点链接 (SS, VMess, VLESS, Hysteria, etc.)\n' +
-                    '2. 订阅链接 (HTTP/HTTPS)\n\n' +
+                    '2. 订阅链接 (HTTP/HTTPS) — <b>可一条消息发多个，每行一个</b>\n\n' +
                     '发送 /help 查看使用帮助',
                 env
             );
@@ -1897,10 +2333,16 @@ async function handleNodeInput(chatId, text, userId, env, requestCache = null) {
         const allSubscriptions = await getCachedSubscriptions(env, cache);
 
         // 3. 批量处理与去重
+        // 订阅链接与节点链接一并处理：订阅（http/https）存为订阅源，节点存为手动节点，
+        // 前端通过 URL 协议区分。这样「一条消息发多个订阅链接」可一次全部导入。
+        const allUrls =
+            importType === 'subscription'
+                ? [...subscriptionUrls]
+                : [...subscriptionUrls, ...nodeUrls];
         const addedNodes = [];
         const ignoredUrls = [];
 
-        for (const url of nodeUrls) {
+        for (const url of allUrls) {
             // 去重检测
             const exists = allSubscriptions.some((sub) => sub.url === url);
             if (exists) {
@@ -1919,6 +2361,8 @@ async function handleNodeInput(chatId, text, userId, env, requestCache = null) {
                 url: url,
                 enabled: true,
                 source: 'telegram',
+                // 同一批导入的节点归入同一分组，便于在网页端按组管理/加入订阅组
+                group: importGroupName,
                 telegram_user_id: userId,
                 created_at: new Date().toISOString(),
             };
@@ -2160,6 +2604,51 @@ async function handleCommand(chatId, text, userId, env, request, requestCache = 
             await handleDupCommand(chatId, userId, args, env);
             break;
 
+        case '/groups':
+        case '/group':
+            // /groups [node|sub] 打开分组管理面板
+            await handleGroupManage(
+                chatId,
+                userId,
+                env,
+                null,
+                args[0] === 'sub' ? 'sub' : 'node',
+                requestCache
+            );
+            break;
+
+        case '/grename': {
+            // /grename <旧组名> <新组名>
+            const oldName = args[0];
+            const newName = args.slice(1).join(' ').trim();
+            if (!oldName || !newName) {
+                await sendTelegramMessage(
+                    chatId,
+                    '✏️ <b>重命名分组</b>\n\n用法：/grename 旧组名 新组名\n\n例：/grename 导入 01 香港节点',
+                    env
+                );
+                break;
+            }
+            const n = await applyGroupOperation(
+                chatId,
+                userId,
+                env,
+                'node',
+                oldName,
+                'rename',
+                newName,
+                requestCache
+            );
+            await sendTelegramMessage(
+                chatId,
+                n > 0
+                    ? `✅ 已将 <b>${escapeHtml(oldName)}</b> 重命名为 <b>${escapeHtml(newName)}</b>（${n} 项）`
+                    : `⚠️ 未找到分组 <b>${escapeHtml(oldName)}</b>`,
+                env
+            );
+            break;
+        }
+
         case '/bind':
             await handleBindCommand(chatId, userId, args, env, requestCache);
             break;
@@ -2191,6 +2680,150 @@ async function handleCallbackQuery(callbackQuery, env, request, requestCache = n
     const data = callbackQuery.data;
 
     try {
+        // 分组管理：gmgr_<type>_<name> 打开某组操作面板
+        if (data.startsWith('gmgr_')) {
+            const rest = data.slice(5);
+            const sep = rest.indexOf('_');
+            const type = rest.slice(0, sep);
+            let name = rest.slice(sep + 1);
+            try {
+                name = decodeURIComponent(name);
+            } catch {
+                /* 保持原样 */
+            }
+            await answerCallbackQuery(callbackQuery.id, '', env);
+            await handleGroupActions(chatId, userId, env, messageId, type, name, requestCache);
+            return createJsonResponse({ ok: true });
+        }
+
+        // 返回分组管理列表：gmls_<type>
+        if (data.startsWith('gmls_')) {
+            const type = data.slice(5);
+            await answerCallbackQuery(callbackQuery.id, '', env);
+            await handleGroupManage(chatId, userId, env, messageId, type, requestCache);
+            return createJsonResponse({ ok: true });
+        }
+
+        // 重命名分组：gmrn_<type>_<name> -> 提示用命令完成
+        if (data.startsWith('gmrn_')) {
+            const rest = data.slice(5);
+            const sep = rest.indexOf('_');
+            const type = rest.slice(0, sep);
+            let name = rest.slice(sep + 1);
+            try {
+                name = decodeURIComponent(name);
+            } catch {
+                /* 保持原样 */
+            }
+            await answerCallbackQuery(callbackQuery.id, '', env);
+            await editTelegramMessage(
+                chatId,
+                messageId,
+                `✏️ <b>重命名分组</b>\n\n` +
+                    `当前名称：<code>${escapeHtml(name)}</code>\n\n` +
+                    `请发送命令完成重命名：\n` +
+                    `<code>/grename ${escapeHtml(name)} 新名称</code>`,
+                env,
+                {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: '🔙 返回',
+                                    callback_data: `gmgr_${type}_${encodeURIComponent(name).slice(0, 40)}`,
+                                },
+                            ],
+                        ],
+                    },
+                    requestCache,
+                }
+            );
+            return createJsonResponse({ ok: true });
+        }
+
+        // 清空分组：gmcl_<type>_<name>
+        if (data.startsWith('gmcl_')) {
+            const rest = data.slice(5);
+            const sep = rest.indexOf('_');
+            const type = rest.slice(0, sep);
+            let name = rest.slice(sep + 1);
+            try {
+                name = decodeURIComponent(name);
+            } catch {
+                /* 保持原样 */
+            }
+            const n = await applyGroupOperation(
+                chatId,
+                userId,
+                env,
+                type,
+                name,
+                'clear',
+                null,
+                requestCache
+            );
+            await answerCallbackQuery(callbackQuery.id, `已清空 ${n} 项的分组`, env);
+            await handleGroupManage(chatId, userId, env, messageId, type, requestCache);
+            return createJsonResponse({ ok: true });
+        }
+
+        // 删除分组：gmrm_<type>_<name>
+        if (data.startsWith('gmrm_')) {
+            const rest = data.slice(5);
+            const sep = rest.indexOf('_');
+            const type = rest.slice(0, sep);
+            let name = rest.slice(sep + 1);
+            try {
+                name = decodeURIComponent(name);
+            } catch {
+                /* 保持原样 */
+            }
+            const n = await applyGroupOperation(
+                chatId,
+                userId,
+                env,
+                type,
+                name,
+                'delete',
+                null,
+                requestCache
+            );
+            await answerCallbackQuery(callbackQuery.id, `已删除分组及 ${n} 项`, env);
+            await handleGroupManage(chatId, userId, env, messageId, type, requestCache);
+            return createJsonResponse({ ok: true });
+        }
+
+        // 分组选择：grp_<type>_<encodedGroupName>
+        if (data.startsWith('grp_')) {
+            const rest = data.slice(4);
+            const sep = rest.indexOf('_');
+            const type = rest.slice(0, sep);
+            const raw = rest.slice(sep + 1);
+            let groupFilter = null;
+            if (raw === '__all__') groupFilter = null;
+            else if (raw === '__none__') groupFilter = '__none__';
+            else {
+                try {
+                    groupFilter = decodeURIComponent(raw);
+                } catch {
+                    groupFilter = raw;
+                }
+            }
+
+            await answerCallbackQuery(callbackQuery.id, '', env);
+            await handleListCommand(
+                chatId,
+                userId,
+                env,
+                0,
+                type,
+                messageId,
+                requestCache,
+                groupFilter
+            );
+            return createJsonResponse({ ok: true });
+        }
+
         // 分页命令
         // 分页命令 (格式: list_page_type_page 或 list_page_page 兼容旧版)
         if (data.startsWith('list_page_')) {
@@ -2219,19 +2852,18 @@ async function handleCallbackQuery(callbackQuery, env, request, requestCache = n
 
             case 'cmd_list_node':
                 await answerCallbackQuery(callbackQuery.id, '', env);
-                await handleListCommand(chatId, userId, env, 0, 'node', messageId, requestCache);
+                await handleGroupSelect(chatId, userId, env, messageId, 'node', requestCache);
                 break;
 
             case 'cmd_list_sub':
                 await answerCallbackQuery(callbackQuery.id, '', env);
-                await handleListCommand(chatId, userId, env, 0, 'sub', messageId, requestCache);
+                await handleGroupSelect(chatId, userId, env, messageId, 'sub', requestCache);
                 break;
 
             case 'cmd_stats':
                 await answerCallbackQuery(callbackQuery.id, '', env);
                 await handleStatsCommand(chatId, userId, env, requestCache);
                 break;
-
             case 'cmd_sub':
                 await answerCallbackQuery(callbackQuery.id, '', env);
                 // 获取订阅 - 不需要 request，直接列出订阅组
@@ -2959,14 +3591,19 @@ export async function handleTelegramWebhook(request, env) {
             const chatId = message.chat.id;
             const text = message.text;
 
-            if (!text) {
-                return createJsonResponse({ ok: true });
-            }
-
-            // 检查用户权限
+            // 检查用户权限（文件消息同样需要鉴权）
             const permissionCheck = checkUserPermission(userId, config);
             if (!permissionCheck.allowed) {
                 await sendTelegramMessage(chatId, `❌ ${permissionCheck.reason}`, env);
+                return createJsonResponse({ ok: true });
+            }
+
+            // 文件/文档消息：下载内容后走与文本相同的导入流程
+            if (!text && (message.document || message.photo)) {
+                return await handleFileInput(chatId, message, userId, config, env, requestCache);
+            }
+
+            if (!text) {
                 return createJsonResponse({ ok: true });
             }
 

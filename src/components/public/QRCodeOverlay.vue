@@ -1,5 +1,8 @@
 <script setup>
     import { useBackdropDismiss } from '../../composables/useBackdropDismiss.js';
+    import { useI18n } from '../../i18n/index.js';
+
+    const { t } = useI18n();
 
     const props = defineProps({
         profile: {
@@ -39,6 +42,7 @@
                     <button
                         @click="emit('close')"
                         class="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                        :aria-label="t('common.close')"
                     >
                         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path
@@ -55,7 +59,7 @@
                             {{ profile.name }}
                         </h4>
                         <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                            扫描二维码导入订阅
+                            {{ t('public.scanToImport') }}
                         </p>
 
                         <div
@@ -88,7 +92,7 @@
                                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                                 />
                             </svg>
-                            下载二维码
+                            {{ t('public.downloadQr') }}
                         </button>
                     </div>
                 </div>

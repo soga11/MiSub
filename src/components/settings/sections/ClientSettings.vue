@@ -555,7 +555,7 @@
                                             </button>
                                         </div>
                                         <p
-                                            class="text-xs text-center text-gray-400 dark:text-gray-500"
+                                            class="text-xs text-center text-gray-500 dark:text-gray-400"
                                         >
                                             {{ t('settings.clientIconSupportHint') }}
                                         </p>
@@ -581,11 +581,11 @@
                                                 v-model="iconInputValue"
                                                 type="text"
                                                 :placeholder="t('settings.clientIconPlaceholder')"
-                                                class="block w-full pl-10 pr-3 misub-radius-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2.5"
+                                                class="block w-full pl-10 pr-3 misub-radius-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus-visible:ring-indigo-500 sm:text-sm py-2.5"
                                             />
                                         </div>
                                         <p
-                                            class="text-xs text-center text-gray-400 dark:text-gray-500"
+                                            class="text-xs text-center text-gray-500 dark:text-gray-400"
                                         >
                                             {{ t('settings.clientIconInputHint') }}
                                         </p>
@@ -607,7 +607,7 @@
                                     <input
                                         v-model="editingClient.name"
                                         type="text"
-                                        class="mt-1 block w-full misub-radius-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-2.5 text-lg font-medium"
+                                        class="mt-1 block w-full misub-radius-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus-visible:ring-indigo-500 sm:text-sm px-4 py-2.5 text-lg font-medium"
                                         :placeholder="t('settings.clientNamePlaceholder')"
                                     />
                                 </div>
@@ -620,7 +620,7 @@
                                     <textarea
                                         v-model="editingClient.description"
                                         rows="3"
-                                        class="mt-1 block w-full misub-radius-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm px-4 py-3 resize-none"
+                                        class="mt-1 block w-full misub-radius-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus-visible:ring-indigo-500 sm:text-sm px-4 py-3 resize-none"
                                         :placeholder="t('settings.clientDescriptionPlaceholder')"
                                     ></textarea>
                                 </div>
@@ -673,8 +673,9 @@
                                         <input
                                             v-model="editingClient.url"
                                             type="text"
-                                            class="flex-1 min-w-0 block w-full px-3 py-2.5 rounded-none rounded-r-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                            class="flex-1 min-w-0 block w-full px-3 py-2.5 rounded-none rounded-r-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus-visible:ring-indigo-500 sm:text-sm"
                                             placeholder="https://..."
+                                            :aria-label="t('settings.clientDownloadUrl')"
                                         />
                                     </div>
                                 </div>
@@ -702,8 +703,9 @@
                                         <input
                                             v-model="editingClient.repo"
                                             type="text"
-                                            class="flex-1 min-w-0 block w-full px-3 py-2.5 rounded-none rounded-r-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                            class="flex-1 min-w-0 block w-full px-3 py-2.5 rounded-none rounded-r-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-indigo-500 focus-visible:ring-indigo-500 sm:text-sm"
                                             placeholder="owner/repo"
+                                            :aria-label="t('settings.clientRepoLabel')"
                                         />
                                     </div>
                                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -726,7 +728,7 @@
                     <button
                         @click="handleSave"
                         :disabled="saving"
-                        class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent misub-radius-md hover:bg-indigo-700 focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                        class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent misub-radius-md hover:bg-indigo-700 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 disabled:opacity-50"
                     >
                         {{ saving ? t('settings.saving') : t('actions.save') }}
                     </button>

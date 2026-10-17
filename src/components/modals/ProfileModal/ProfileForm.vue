@@ -4,7 +4,7 @@
     import Input from '../../ui/Input.vue';
     import Switch from '../../ui/Switch.vue';
     import OperatorChain from '../../features/Operators/OperatorChain.vue';
-    import { TRANSFORM_ASSETS } from '@/constants/transform-assets';
+    import { getLocalizedTransformAssetByUrl } from '@/constants/transform-assets';
     import { useI18n } from '@/i18n/index.js';
 
     const { t } = useI18n();
@@ -47,7 +47,7 @@
         const mode = props.globalSettings?.transformConfigMode || 'builtin';
         if (mode === 'builtin') return t('profileModal.builtinAutoRoute');
         const url = props.globalSettings?.transformConfig || '';
-        const asset = TRANSFORM_ASSETS.configs.find((a) => a.url === url);
+        const asset = getLocalizedTransformAssetByUrl(url, t);
         return asset ? asset.name : url ? t('profileModal.customUrl') : t('profileModal.notSet');
     });
 
@@ -129,7 +129,9 @@
                 :label="t('profiles.customIdLabel')"
                 :placeholder="t('profiles.customIdPlaceholder')"
             />
-            <p class="text-xs text-gray-400 mt-1 ml-1">{{ t('profiles.customIdHint') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-1">
+                {{ t('profiles.customIdHint') }}
+            </p>
         </div>
     </div>
 
@@ -143,7 +145,7 @@
                     type="checkbox"
                     id="profile-is-public"
                     v-model="localProfile.isPublic"
-                    class="h-4 w-4 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    class="h-4 w-4 rounded-sm border-gray-300 text-indigo-600 focus-visible:ring-indigo-500"
                 />
                 <label
                     for="profile-is-public"
@@ -166,10 +168,10 @@
                 v-model="localProfile.description"
                 rows="2"
                 :placeholder="t('profiles.descriptionPlaceholder')"
-                class="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:text-white"
+                class="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus-visible:outline-hidden focus-visible:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:text-white"
             ></textarea>
         </div>
-        <div v-else class="text-xs text-gray-400">
+        <div v-else class="text-xs text-gray-500 dark:text-gray-400">
             {{ t('profiles.publicDisplayHint') }}
         </div>
     </div>
@@ -179,7 +181,7 @@
         <button
             type="button"
             @click="emit('toggle-advanced')"
-            class="flex items-center text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 focus:outline-hidden"
+            class="flex items-center text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 focus-visible:outline-hidden"
         >
             <span>{{ t('profiles.advancedTitle') }}</span>
             <svg
@@ -205,7 +207,7 @@
                     <h3 class="text-sm font-bold text-gray-900 dark:text-white">
                         {{ t('profileModal.coreConfig') }}
                     </h3>
-                    <span class="text-[10px] text-gray-400">{{
+                    <span class="text-[10px] text-gray-500 dark:text-gray-400">{{
                         t('profileModal.coreConfigDesc')
                     }}</span>
                 </div>
@@ -220,7 +222,7 @@
                         }}</label>
                         <select
                             v-model="localProfile.subconverter.engineMode"
-                            class="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md focus:ring-indigo-500 sm:text-sm dark:text-white transition-all font-medium"
+                            class="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md focus-visible:ring-indigo-500 sm:text-sm dark:text-white transition-all font-medium"
                         >
                             <option value="">{{ t('profileModal.followGlobalConfig') }}</option>
                             <option
@@ -251,7 +253,7 @@
                         }}</label>
                         <select
                             v-model="localProfile.transformConfigMode"
-                            class="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md focus:ring-indigo-500 sm:text-sm dark:text-white"
+                            class="block w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md focus-visible:ring-indigo-500 sm:text-sm dark:text-white"
                         >
                             <option value="global">
                                 {{ t('profileModal.followGlobalScheme') }}
@@ -300,9 +302,11 @@
                             type="text"
                             v-model="localProfile.subconverter.backend"
                             :placeholder="t('profileModal.backendPlaceholder')"
-                            class="block w-full px-3 py-2 bg-orange-50/20 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-500/20 misub-radius-md sm:text-sm dark:text-white focus:ring-orange-500"
+                            class="block w-full px-3 py-2 bg-orange-50/20 dark:bg-orange-900/10 border border-orange-200/50 dark:border-orange-500/20 misub-radius-md sm:text-sm dark:text-white focus-visible:ring-orange-500"
                         />
-                        <p class="mt-1.5 text-[10px] leading-relaxed text-gray-400">
+                        <p
+                            class="mt-1.5 text-[10px] leading-relaxed text-gray-500 dark:text-gray-400"
+                        >
                             {{ t('profileModal.backendHint') }}
                         </p>
                         <div
@@ -365,7 +369,7 @@
                     <h3 class="text-sm font-bold text-gray-900 dark:text-white">
                         {{ t('profileModal.tuningTitle') }}
                     </h3>
-                    <span class="text-[10px] text-gray-400">{{
+                    <span class="text-[10px] text-gray-500 dark:text-gray-400">{{
                         t('profileModal.tuningDesc')
                     }}</span>
                 </div>
@@ -418,7 +422,7 @@
                         class="sm:col-span-2 space-y-3 pt-2 border-t border-gray-50 dark:border-gray-700/50"
                     >
                         <label
-                            class="block text-[11px] font-bold text-gray-400 uppercase tracking-widest"
+                            class="block text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
                             >{{ t('profileModal.nodeNameVisibility') }}</label
                         >
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -437,7 +441,7 @@
                                 }}</label>
                                 <select
                                     v-model="localProfile.prefixSettings.enableManualNodes"
-                                    class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus:ring-1 focus:ring-indigo-500"
+                                    class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus-visible:ring-1 focus-visible:ring-indigo-500"
                                 >
                                     <option
                                         v-for="option in prefixToggleOptions"
@@ -456,7 +460,7 @@
                                 }}</label>
                                 <select
                                     v-model="localProfile.prefixSettings.enableSubscriptions"
-                                    class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus:ring-1 focus:ring-indigo-500"
+                                    class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus-visible:ring-1 focus-visible:ring-indigo-500"
                                 >
                                     <option
                                         v-for="option in prefixToggleOptions"
@@ -475,7 +479,7 @@
                                 }}</label>
                                 <select
                                     v-model="localProfile.prefixSettings.prependGroupName"
-                                    class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus:ring-1 focus:ring-indigo-500"
+                                    class="w-full px-2 py-1.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus-visible:ring-1 focus-visible:ring-indigo-500"
                                 >
                                     <option
                                         v-for="option in groupPrefixToggleOptions"
@@ -506,7 +510,7 @@
                                 </div>
                                 <select
                                     v-model="localProfile.subconverter.options[flag.key]"
-                                    class="w-full px-1.5 py-1 text-[11px] bg-white dark:bg-gray-700 border-none misub-radius-md focus:ring-1 focus:ring-indigo-500 dark:text-white"
+                                    class="w-full px-1.5 py-1 text-[11px] bg-white dark:bg-gray-700 border-none misub-radius-md focus-visible:ring-1 focus-visible:ring-indigo-500 dark:text-white"
                                 >
                                     <option :value="null">
                                         {{ t('profileModal.followGlobal') }}
@@ -526,7 +530,7 @@
                     <h3 class="text-sm font-bold text-gray-900 dark:text-white">
                         {{ t('profileModal.pipelineTitle') }}
                     </h3>
-                    <span class="text-[10px] text-gray-400">{{
+                    <span class="text-[10px] text-gray-500 dark:text-gray-400">{{
                         t('profileModal.pipelineDesc')
                     }}</span>
                 </div>

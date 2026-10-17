@@ -84,6 +84,10 @@
     const isExternalEngine = computed(() => props.settings.subconverter.engineMode === 'external');
     const backendTestStatus = ref(null);
     const isTestingBackend = ref(false);
+    const previousEngineSettings = ref(null);
+    const restoreEngineSnapshot = ref(null);
+    const showEngineChangeWarning = ref(false);
+    const engineChangeNoticeDismissed = ref(false);
     const backendTestToneClass = computed(() => {
         if (!backendTestStatus.value)
             return 'border-gray-100 bg-gray-50 text-gray-500 dark:border-white/5 dark:bg-white/5 dark:text-gray-400';
@@ -96,17 +100,43 @@
         if (isTestingBackend.value) return;
         isTestingBackend.value = true;
         backendTestStatus.value = null;
-        const result = await testSubconverterBackend(
-            props.settings.subconverter.defaultBackend,
-            'clash'
-        );
-        backendTestStatus.value = {
-            success: Boolean(result?.success || result?.available),
-            message: result?.message || result?.error || t('settings.transformBackendTestFailed'),
-            endpoint: result?.endpoint || '',
-            elapsedMs: result?.elapsedMs,
-        };
-        isTestingBackend.value = false;
+        const backend = props.settings.subconverter.defaultBackend;
+        try {
+            const result = await testSubconverterBackend(backend, 'clash');
+            if (props.settings.subconverter.defaultBackend !== backend) return;
+            backendTestStatus.value = {
+                success: Boolean(result?.success || result?.available),
+                message:
+                    result?.message || result?.error || t('settings.transformBackendTestFailed'),
+                endpoint: result?.endpoint || '',
+                elapsedMs: result?.elapsedMs,
+            };
+        } catch (error) {
+            if (props.settings.subconverter.defaultBackend === backend) {
+                backendTestStatus.value = {
+                    success: false,
+                    message: error?.message || t('settings.transformBackendTestFailed'),
+                    endpoint: '',
+                };
+            }
+        } finally {
+            isTestingBackend.value = false;
+        }
+    }
+
+    function switchToBuiltinEngine() {
+        props.settings.subconverter.engineMode = 'builtin';
+        if (!restoreEngineSnapshot.value) return;
+        Object.assign(props.settings, restoreEngineSnapshot.value);
+        props.settings.subconverter.engineMode = 'builtin';
+        selectedAsset.value = null;
+        showEngineChangeWarning.value = false;
+        previousEngineSettings.value = null;
+        restoreEngineSnapshot.value = null;
+    }
+
+    function restorePreviousEngineSettings() {
+        switchToBuiltinEngine();
     }
 
     watch(
@@ -118,22 +148,34 @@
 
     watch(
         isExternalEngine,
-        (enabled) => {
-            if (!enabled) return;
-
-            props.settings.builtinSkipCertVerify = false;
-            props.settings.builtinEnableUdp = false;
-
-            if (
-                props.settings.transformConfigMode === 'builtin' ||
-                props.settings.transformConfigMode === 'custom_template'
-            ) {
-                props.settings.transformConfigMode = 'preset';
-            }
-
-            if (/^(builtin|custom):/.test(String(props.settings.transformConfig || ''))) {
-                props.settings.transformConfig = '';
-                selectedAsset.value = null;
+        (enabled, wasEnabled) => {
+            if (enabled === wasEnabled) return;
+            if (enabled) {
+                previousEngineSettings.value = {
+                    builtinSkipCertVerify: props.settings.builtinSkipCertVerify,
+                    builtinEnableUdp: props.settings.builtinEnableUdp,
+                    transformConfigMode: props.settings.transformConfigMode,
+                    transformConfig: props.settings.transformConfig,
+                };
+                restoreEngineSnapshot.value = {
+                    builtinSkipCertVerify: props.settings.builtinSkipCertVerify,
+                    builtinEnableUdp: props.settings.builtinEnableUdp,
+                    transformConfigMode: props.settings.transformConfigMode,
+                    transformConfig: props.settings.transformConfig,
+                };
+                props.settings.builtinSkipCertVerify = false;
+                props.settings.builtinEnableUdp = false;
+                if (
+                    props.settings.transformConfigMode === 'builtin' ||
+                    props.settings.transformConfigMode === 'custom_template'
+                ) {
+                    props.settings.transformConfigMode = 'preset';
+                }
+                if (/^(builtin|custom):/.test(String(props.settings.transformConfig || ''))) {
+                    props.settings.transformConfig = '';
+                    selectedAsset.value = null;
+                }
+                showEngineChangeWarning.value = !engineChangeNoticeDismissed.value;
             }
         },
         { immediate: true }
@@ -176,7 +218,7 @@
 
             <div class="flex rounded-lg border border-white/20 bg-white/10 p-1">
                 <button
-                    @click="settings.subconverter.engineMode = 'builtin'"
+                    @click="switchToBuiltinEngine"
                     :class="
                         isBuiltinEngine
                             ? 'bg-white text-indigo-600 shadow-sm'
@@ -198,6 +240,39 @@
                     {{ t('settings.transformExternalEngine') }}
                 </button>
             </div>
+        </div>
+
+        <div
+            v-if="showEngineChangeWarning"
+            data-testid="engine-change-notice"
+            class="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200 sm:flex-row sm:items-center sm:justify-between"
+        >
+            <div class="flex min-w-0 flex-1 flex-col gap-1">
+                <p>{{ t('settings.transformEngineChangeNotice') }}</p>
+                <p class="text-xs">{{ t('settings.transformExternalWarning') }}</p>
+            </div>
+            <button
+                type="button"
+                data-testid="dismiss-engine-change-notice"
+                class="shrink-0 self-start rounded-md px-2 py-1 text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-500/10"
+                :aria-label="t('actions.dismiss')"
+                @click="
+                    engineChangeNoticeDismissed = true;
+                    showEngineChangeWarning = false;
+                "
+            >
+                ×
+            </button>
+            <button
+                type="button"
+                class="shrink-0 rounded-md border border-amber-300 px-3 py-1.5 text-xs font-semibold hover:bg-amber-100 dark:border-amber-400/30 dark:hover:bg-amber-500/10"
+                @click="
+                    restorePreviousEngineSettings();
+                    engineChangeNoticeDismissed = true;
+                "
+            >
+                {{ t('settings.transformRestoreEngineSettings') }}
+            </button>
         </div>
 
         <div
@@ -236,7 +311,7 @@
                         </label>
                         <select
                             v-model="settings.transformConfigMode"
-                            class="block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors duration-200 focus:border-purple-500 focus:ring-purple-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                            class="block w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm transition-colors duration-200 focus:border-purple-500 focus-visible:ring-purple-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                         >
                             <option
                                 v-for="option in modeOptions"
@@ -251,7 +326,9 @@
                                 {{ option.label }}
                             </option>
                         </select>
-                        <p class="mt-2 text-[10px] leading-relaxed text-gray-400">
+                        <p
+                            class="mt-2 text-[10px] leading-relaxed text-gray-500 dark:text-gray-400"
+                        >
                             {{ modeHint }}
                         </p>
                         <p
@@ -280,7 +357,9 @@
                                 ></span>
                                 {{ t('settings.transformBuiltinParams') }}
                             </h4>
-                            <span class="text-[10px] font-medium text-gray-400">builtin-core</span>
+                            <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400"
+                                >builtin-core</span
+                            >
                         </div>
 
                         <div class="space-y-4">
@@ -294,7 +373,7 @@
                                 <select
                                     v-model="settings.ruleLevel"
                                     :disabled="!isBuiltinMode || isExternalEngine"
-                                    class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                                    class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-indigo-500 focus-visible:ring-indigo-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                                 >
                                     <option value="base">
                                         {{ t('settings.transformRuleBase') }}
@@ -383,7 +462,9 @@
                     ></span>
                     {{ t('settings.transformExternalParams') }}
                 </h4>
-                <span class="text-[10px] font-medium text-gray-400">subconverter</span>
+                <span class="text-[10px] font-medium text-gray-500 dark:text-gray-400"
+                    >subconverter</span
+                >
             </div>
 
             <div class="space-y-4">
@@ -393,7 +474,7 @@
                     }}</label>
                     <select
                         v-model="settings.subconverter.defaultBackend"
-                        class="mb-2 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-orange-500 focus:ring-orange-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                        class="mb-2 block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-orange-500 focus-visible:ring-orange-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                     >
                         <option
                             v-for="backend in SUBCONVERTER_BACKENDS"
@@ -407,9 +488,10 @@
                         type="text"
                         v-model="settings.subconverter.defaultBackend"
                         placeholder="subapi.cmliussss.net"
-                        class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-orange-500 focus:ring-orange-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                        class="block w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 focus:border-orange-500 focus-visible:ring-orange-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                        :aria-label="t('settings.transformCustomBackend')"
                     />
-                    <p class="mt-1.5 text-[10px] leading-relaxed text-gray-400">
+                    <p class="mt-1.5 text-[10px] leading-relaxed text-gray-500 dark:text-gray-400">
                         {{ t('settings.transformBackendHint') }}
                     </p>
                     <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -418,6 +500,7 @@
                             data-testid="test-subconverter-backend"
                             @click="handleTestBackend"
                             :disabled="!isExternalEngine || isTestingBackend"
+                            :aria-busy="String(isTestingBackend)"
                             class="inline-flex items-center justify-center rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-700 transition-colors hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-orange-500/30 dark:bg-orange-900/20 dark:text-orange-200 dark:hover:bg-orange-900/30"
                         >
                             {{
@@ -426,7 +509,7 @@
                                     : t('settings.transformTestBackend')
                             }}
                         </button>
-                        <p class="text-[10px] leading-relaxed text-gray-400">
+                        <p class="text-[10px] leading-relaxed text-gray-500 dark:text-gray-400">
                             {{ t('settings.transformTestBackendHint') }}
                         </p>
                     </div>

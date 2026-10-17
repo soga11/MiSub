@@ -8,6 +8,7 @@
     import { useDataStore } from '../../stores/useDataStore.js';
     import { useSettingsStore } from '../../stores/settings.js';
     import { useI18n } from '@/i18n/index.js';
+    import { DEFAULT_GROUP_KEY } from '@/composables/manual-nodes/groups.js';
 
     const { t } = useI18n();
     const dataStore = useDataStore();
@@ -142,7 +143,7 @@
         let nodes = props.allManualNodes;
 
         if (activeManualNodeGroupFilter.value) {
-            if (activeManualNodeGroupFilter.value === '默认') {
+            if (activeManualNodeGroupFilter.value === DEFAULT_GROUP_KEY) {
                 nodes = nodes.filter((n) => !n.group);
             } else {
                 nodes = nodes.filter((n) => n.group === activeManualNodeGroupFilter.value);
@@ -237,7 +238,6 @@
                 profileCopy.operators = Array.isArray(profileCopy.operators)
                     ? profileCopy.operators
                     : [];
-                profileCopy.autoIncludeManualNodes = profileCopy.autoIncludeManualNodes === true;
 
                 localProfile.value = profileCopy;
             } else {
@@ -246,7 +246,6 @@
                     enabled: true,
                     subscriptions: [],
                     manualNodes: [],
-                    autoIncludeManualNodes: false,
                     customId: '',
                     expiresAt: '',
                     isPublic: true,
@@ -379,11 +378,9 @@
                         :active-group-filter="activeManualNodeGroupFilter"
                         :groups="manualNodeGroups"
                         :selected-ids="localProfile.manualNodes || []"
-                        :auto-include-all="localProfile.autoIncludeManualNodes === true"
                         @update:search-term="nodeSearchTerm = $event"
                         @update:group-filter="activeManualNodeGroupFilter = $event"
                         @update:selected-ids="updateSelectedIds('manualNodes', $event)"
-                        @update:auto-include-all="localProfile.autoIncludeManualNodes = $event"
                         @toggle-selection="toggleSelection('manualNodes', $event)"
                         @select-all="handleSelectAll('manualNodes', filteredManualNodes)"
                         @deselect-all="handleDeselectAll('manualNodes', filteredManualNodes)"

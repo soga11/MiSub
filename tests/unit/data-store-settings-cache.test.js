@@ -27,6 +27,28 @@ describe('Data store settings cache', () => {
         sessionStorage.clear();
     });
 
+    it('shares one in-flight fetch result across concurrent fetchData calls', async () => {
+        let resolveRequest;
+        const responseData = { misubs: [], profiles: [], ruleTemplates: [], config: {} };
+        const fetchMock = vi.fn(
+            () =>
+                new Promise((resolve) => {
+                    resolveRequest = () => resolve(jsonResponse(responseData));
+                })
+        );
+        vi.stubGlobal('fetch', fetchMock);
+
+        const dataStore = createStore();
+        const first = dataStore.fetchData();
+        const second = dataStore.fetchData();
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        resolveRequest();
+        const [firstResult, secondResult] = await Promise.all([first, second]);
+        expect(firstResult).toBe(true);
+        expect(secondResult).toBe(true);
+        expect(dataStore.profiles).toEqual([]);
+    });
+
     it('updates the session data cache config after saving settings', async () => {
         const initialData = {
             misubs: [],

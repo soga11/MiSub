@@ -68,7 +68,7 @@
         aria-live="polite"
     >
         <div
-            class="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border border-gray-200/70 bg-gray-50 text-gray-400 dark:border-white/10 dark:bg-white/5 dark:text-gray-500"
+            class="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border border-gray-200/70 bg-gray-50 text-gray-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-400"
         >
             <svg
                 class="h-10 w-10"
@@ -99,7 +99,7 @@
             <button
                 v-if="showResetButton"
                 @click="emit('reset')"
-                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500/30 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
+                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 dark:border-white/10 dark:bg-white/5 dark:text-gray-300 dark:hover:bg-white/10"
                 :aria-label="t('common.resetFiltersAria')"
             >
                 <svg
@@ -122,7 +122,7 @@
             <button
                 v-else
                 @click="emit('refresh')"
-                class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+                class="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
                 :aria-label="t('common.refreshListAria')"
             >
                 <svg

@@ -1,4 +1,7 @@
 <script setup>
+    import { useI18n } from '../../i18n/index.js';
+
+    const { t } = useI18n();
     import { ref, watch } from 'vue';
     import Modal from '../forms/Modal.vue';
     import SettingsPanel from './SettingsPanel.vue';
@@ -35,7 +38,9 @@
             <div
                 class="bg-white/80 dark:bg-gray-900/60 border border-gray-100/80 dark:border-white/10 misub-radius-lg px-4 py-2"
             >
-                <h3 class="text-lg font-bold text-gray-800 dark:text-white">设置</h3>
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">
+                    {{ t('settings.title') }}
+                </h3>
             </div>
         </template>
         <template #body>

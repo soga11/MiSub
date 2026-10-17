@@ -12,6 +12,7 @@
     import { useSessionStore } from '../stores/session';
     import { storeToRefs } from 'pinia';
     import { isValidCustomLoginPath } from '../utils/login-path.js';
+    import { readSessionPreference, writeSessionPreference } from '../utils/session-preference.js';
 
     // Lazy load components
     const Login = defineAsyncComponent(() => import('../components/modals/Login.vue'));
@@ -61,11 +62,20 @@
         const config = publicConfig.value || {};
         const currentPath = route.path;
 
-        // 判断是否存在有效的自定义登录路径
-        const hasCustomPath = isValidCustomLoginPath(config.customLoginPath);
-        const configuredPath = hasCustomPath
+        // customLoginPath 不再由公开 API 返回；后端只在当前 Referer 是实际登录路径时
+        // 返回 isLoginPath=true。未知路径不会被误当成登录页。
+        let rememberedPath = readSessionPreference('misub:login-path') || '';
+        const inferredPath = config.isLoginPath ? rememberedPath || currentPath : rememberedPath;
+        const hasCustomPath =
+            isValidCustomLoginPath(config.customLoginPath) || Boolean(inferredPath);
+        const configuredPath = isValidCustomLoginPath(config.customLoginPath)
             ? '/' + config.customLoginPath.trim().replace(/^\/+/, '')
-            : '/login';
+            : inferredPath || '/login';
+
+        if (config.isLoginPath && inferredPath) {
+            // 写失败不影响可用性：当前路由本身仍然有效，下次从路由推断即可。
+            writeSessionPreference('misub:login-path', inferredPath);
+        }
 
         if (currentPath === configuredPath) {
             // 匹配到配置的登录路径（自定义或默认 /login）

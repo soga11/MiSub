@@ -110,10 +110,10 @@
                 rows="20"
                 spellcheck="false"
                 :placeholder="t('settings.dnsOverridePlaceholder')"
-                class="block w-full rounded-lg border bg-white px-4 py-3 font-mono text-xs leading-relaxed text-gray-900 shadow-sm transition-colors duration-200 focus:border-teal-500 focus:ring-teal-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                class="block w-full rounded-lg border bg-white px-4 py-3 font-mono text-xs leading-relaxed text-gray-900 shadow-sm transition-colors duration-200 focus:border-teal-500 focus-visible:ring-teal-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
                 :class="
                     jsonError
-                        ? 'border-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-500/50'
+                        ? 'border-red-300 focus:border-red-500 focus-visible:ring-red-500 dark:border-red-500/50'
                         : 'border-gray-200 dark:border-gray-700'
                 "
                 @blur="validateInput"
@@ -121,7 +121,7 @@
             <p v-if="jsonError" class="mt-2 text-xs text-red-600 dark:text-red-400">
                 {{ jsonError }}
             </p>
-            <p v-else class="mt-2 text-[10px] leading-relaxed text-gray-400 dark:text-gray-500">
+            <p v-else class="mt-2 text-[10px] leading-relaxed text-gray-500 dark:text-gray-400">
                 {{ t('settings.dnsOverrideHint') }}
             </p>
         </div>

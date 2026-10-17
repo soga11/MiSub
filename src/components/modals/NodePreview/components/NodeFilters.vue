@@ -1,5 +1,8 @@
 <script setup>
     import { computed } from 'vue';
+    import { useI18n } from '../../../../i18n/index.js';
+
+    const { t } = useI18n();
 
     const props = defineProps({
         searchQuery: {
@@ -77,7 +80,7 @@
             <!-- 搜索 (移动端置顶) -->
             <div class="w-full">
                 <label
-                    class="block text-[10px] uppercase font-black text-gray-400 dark:text-gray-500 mb-2 tracking-widest pl-1"
+                    class="block text-[10px] uppercase font-black text-gray-500 dark:text-gray-400 mb-2 tracking-widest pl-1"
                 >
                     Node Search
                 </label>
@@ -87,10 +90,11 @@
                             v-model="searchModel"
                             type="text"
                             placeholder="Search nodes..."
-                            class="w-full rounded-1.5xl border border-gray-100 bg-white/50 px-4 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-white/5 dark:bg-gray-800/50 dark:text-white transition-all shadow-sm"
+                            class="w-full rounded-1.5xl border border-gray-100 bg-white/50 px-4 py-2.5 pr-10 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus-visible:ring-4 focus-visible:ring-indigo-500/10 dark:border-white/5 dark:bg-gray-800/50 dark:text-white transition-all shadow-sm"
+                            :aria-label="t('nodePreview.searchLabel')"
                         />
                         <div
-                            class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none transition-colors group-focus-within:text-indigo-500 text-gray-400"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none transition-colors group-focus-within:text-indigo-500 text-gray-500 dark:text-gray-400"
                         >
                             <svg
                                 class="w-4 h-4"
@@ -115,9 +119,10 @@
                         :class="
                             showProcessed
                                 ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                                : 'bg-gray-100 dark:bg-gray-700/50 text-gray-400 border-transparent'
+                                : 'bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 border-transparent'
                         "
                         class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-1.5xl transition-all hover:scale-105 active:scale-95 lg:hidden"
+                        :aria-label="t('nodePreview.toggleProcessed')"
                     >
                         <svg
                             v-if="!showProcessed"
@@ -156,13 +161,13 @@
                 <!-- 协议筛选 -->
                 <div>
                     <label
-                        class="block text-[10px] uppercase font-black text-gray-400 dark:text-gray-500 mb-2 tracking-widest pl-1"
+                        class="block text-[10px] uppercase font-black text-gray-500 dark:text-gray-400 mb-2 tracking-widest pl-1"
                     >
                         Type
                     </label>
                     <select
                         v-model="protocolModel"
-                        class="w-full rounded-1.5xl border border-gray-100 bg-white/50 px-4 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-white/5 dark:bg-gray-800/50 dark:text-white transition-all shadow-sm appearance-none"
+                        class="w-full rounded-1.5xl border border-gray-100 bg-white/50 px-4 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus-visible:ring-4 focus-visible:ring-indigo-500/10 dark:border-white/5 dark:bg-gray-800/50 dark:text-white transition-all shadow-sm appearance-none"
                     >
                         <option value="all">ALL PROTOCOLS</option>
                         <option
@@ -178,13 +183,13 @@
                 <!-- 地区筛选 -->
                 <div>
                     <label
-                        class="block text-[10px] uppercase font-black text-gray-400 dark:text-gray-500 mb-2 tracking-widest pl-1"
+                        class="block text-[10px] uppercase font-black text-gray-500 dark:text-gray-400 mb-2 tracking-widest pl-1"
                     >
                         Region
                     </label>
                     <select
                         v-model="regionModel"
-                        class="w-full rounded-1.5xl border border-gray-100 bg-white/50 px-4 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-white/5 dark:bg-gray-800/50 dark:text-white transition-all shadow-sm appearance-none"
+                        class="w-full rounded-1.5xl border border-gray-100 bg-white/50 px-4 py-2.5 text-sm text-gray-900 focus:border-indigo-500 focus-visible:ring-4 focus-visible:ring-indigo-500/10 dark:border-white/5 dark:bg-gray-800/50 dark:text-white transition-all shadow-sm appearance-none"
                     >
                         <option value="all">ALL REGIONS</option>
                         <option v-for="region in availableRegions" :key="region" :value="region">
@@ -199,7 +204,7 @@
                 <!-- 视图切换 -->
                 <div>
                     <label
-                        class="block text-[10px] uppercase font-black text-gray-400 dark:text-gray-500 mb-2 tracking-widest pl-1"
+                        class="block text-[10px] uppercase font-black text-gray-500 dark:text-gray-400 mb-2 tracking-widest pl-1"
                     >
                         Layout
                     </label>
@@ -212,7 +217,8 @@
                                     : 'bg-gray-100 text-gray-500 dark:bg-gray-700/50 dark:text-gray-400'
                             "
                             class="flex h-11 w-11 items-center justify-center rounded-1.5xl text-sm font-medium transition-all hover:scale-105 active:scale-95"
-                            title="List View"
+                            :title="t('common.listView')"
+                            :aria-label="t('common.listView')"
                         >
                             <svg
                                 class="w-4 h-4"
@@ -236,7 +242,8 @@
                                     : 'bg-gray-100 text-gray-500 dark:bg-gray-700/50 dark:text-gray-400'
                             "
                             class="flex h-11 w-11 items-center justify-center rounded-1.5xl text-sm font-medium transition-all hover:scale-105 active:scale-95"
-                            title="Card View"
+                            :title="t('common.cardView')"
+                            :aria-label="t('common.cardView')"
                         >
                             <svg
                                 class="w-4 h-4"
@@ -258,7 +265,7 @@
                 <!-- 规则处理 -->
                 <div v-if="isProcessedToggleVisible">
                     <label
-                        class="block text-[10px] uppercase font-black text-gray-400 dark:text-gray-500 mb-2 tracking-widest pl-1"
+                        class="block text-[10px] uppercase font-black text-gray-500 dark:text-gray-400 mb-2 tracking-widest pl-1"
                     >
                         Optimization
                     </label>
@@ -271,7 +278,8 @@
                                     : 'bg-gray-100 text-gray-500 dark:bg-gray-700/50 dark:text-gray-400'
                             "
                             class="flex h-11 w-11 items-center justify-center rounded-1.5xl text-sm font-medium transition-all hover:scale-105 active:scale-95"
-                            title="Toggle: Raw / Processed Name"
+                            :title="t('nodePreview.toggleRawName')"
+                            :aria-label="t('nodePreview.toggleRawName')"
                         >
                             <!-- 魔法棒 Icon (处理后) -->
                             <svg

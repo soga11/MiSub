@@ -37,9 +37,11 @@ function createMockD1(rows) {
                 async all() {
                     const ids = new Set(record.bindings || []);
                     return {
-                        results: rows.filter((row) => ids.has(row.id)).map((row) => ({
-                            data: JSON.stringify(row.data),
-                        })),
+                        results: rows
+                            .filter((row) => ids.has(row.id))
+                            .map((row) => ({
+                                data: JSON.stringify(row.data),
+                            })),
                     };
                 },
                 async first() {

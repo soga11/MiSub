@@ -227,7 +227,7 @@
                 <div class="flex items-center gap-2">
                     <select
                         v-model="filterStatus"
-                        class="block w-full sm:w-auto pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm misub-radius-md bg-white dark:bg-gray-700 dark:text-white"
+                        class="block w-full sm:w-auto pl-3 pr-10 py-2 text-base border-gray-300 dark:border-gray-600 focus-visible:outline-none focus-visible:ring-indigo-500 focus:border-indigo-500 sm:text-sm misub-radius-md bg-white dark:bg-gray-700 dark:text-white"
                     >
                         <option value="all">{{ t('settings.guestbookAllStatus') }}</option>
                         <option value="pending">{{ t('settings.guestbookPending') }}</option>
@@ -236,7 +236,8 @@
                     </select>
                     <button
                         @click="fetchMessages"
-                        class="p-2 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+                        class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                        :aria-label="t('actions.refresh')"
                     >
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path
@@ -309,7 +310,7 @@
                             class="text-xs text-indigo-600 dark:text-indigo-400 font-medium mb-1 flex justify-between"
                         >
                             <span>{{ t('settings.guestbookAdminReply') }}</span>
-                            <span class="text-gray-400 font-normal">{{
+                            <span class="text-gray-500 dark:text-gray-400 font-normal">{{
                                 formatDate(msg.replyAt)
                             }}</span>
                         </div>
@@ -321,7 +322,7 @@
                         <textarea
                             v-model="replyContent"
                             rows="3"
-                            class="block w-full misub-radius-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-gray-700 dark:text-white sm:text-sm"
+                            class="block w-full misub-radius-lg border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus-visible:ring-indigo-500 bg-white dark:bg-gray-700 dark:text-white sm:text-sm"
                             :placeholder="t('settings.guestbookReplyPlaceholder')"
                         ></textarea>
                         <div class="mt-2 flex justify-end gap-2">

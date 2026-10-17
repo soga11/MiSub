@@ -60,9 +60,10 @@
     <div class="space-y-4">
         <div class="grid gap-4 md:grid-cols-2">
             <div class="space-y-2">
-                <label class="text-[11px] font-bold uppercase tracking-tight text-gray-400">{{
-                    t('operators.dedupMode')
-                }}</label>
+                <label
+                    class="text-[11px] font-bold uppercase tracking-tight text-gray-500 dark:text-gray-400"
+                    >{{ t('operators.dedupMode') }}</label
+                >
                 <select
                     :value="params.mode"
                     @change="updateValue({ mode: $event.target.value })"
@@ -71,7 +72,9 @@
                     <option value="serverPort">{{ t('operators.dedupServerPort') }}</option>
                     <option value="url">{{ t('operators.dedupFullUrl') }}</option>
                 </select>
-                <p class="text-[10px] text-gray-400">{{ t('operators.dedupModeHint') }}</p>
+                <p class="text-[10px] text-gray-500 dark:text-gray-400">
+                    {{ t('operators.dedupModeHint') }}
+                </p>
             </div>
 
             <div
@@ -102,9 +105,10 @@
         </div>
 
         <div class="space-y-2">
-            <label class="text-[11px] font-bold uppercase tracking-tight text-gray-400">{{
-                t('operators.preferredProtocols')
-            }}</label>
+            <label
+                class="text-[11px] font-bold uppercase tracking-tight text-gray-500 dark:text-gray-400"
+                >{{ t('operators.preferredProtocols') }}</label
+            >
             <div
                 class="flex flex-wrap gap-2 rounded-xl border border-gray-100 bg-gray-50/60 p-3 dark:border-gray-800 dark:bg-gray-900/40"
             >
@@ -122,7 +126,9 @@
                     {{ protocol }}
                 </button>
             </div>
-            <p class="text-[10px] text-gray-400">{{ t('operators.preferredProtocolsHint') }}</p>
+            <p class="text-[10px] text-gray-500 dark:text-gray-400">
+                {{ t('operators.preferredProtocolsHint') }}
+            </p>
         </div>
     </div>
 </template>

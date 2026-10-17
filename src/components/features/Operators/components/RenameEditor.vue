@@ -89,13 +89,14 @@
         <!-- Regex Rename -->
         <div class="space-y-3">
             <div class="flex items-center justify-between">
-                <label class="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{{
-                    t('operators.regexReplace')
-                }}</label>
+                <label
+                    class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight"
+                    >{{ t('operators.regexReplace') }}</label
+                >
                 <div class="flex items-center gap-2">
                     <div class="relative group/presets">
                         <button
-                            class="text-[10px] text-gray-400 font-medium hover:text-indigo-600 transition-colors flex items-center gap-0.5"
+                            class="text-[10px] text-gray-500 dark:text-gray-400 font-medium hover:text-indigo-600 transition-colors flex items-center gap-0.5"
                         >
                             {{ t('operators.commonRegex') }}
                             <svg
@@ -142,7 +143,9 @@
                         "
                         :class="[
                             'text-[10px] font-medium transition-colors ml-2',
-                            props.modelValue.regex?.enabled ? 'text-indigo-600' : 'text-gray-300',
+                            props.modelValue.regex?.enabled
+                                ? 'text-indigo-600'
+                                : 'text-gray-500 dark:text-gray-400',
                         ]"
                     >
                         {{ statusLabel(props.modelValue.regex?.enabled) }}
@@ -158,7 +161,8 @@
                 >
                     <button
                         @click="removeRule(idx)"
-                        class="absolute top-2 right-2 p-1 text-gray-300 hover:text-rose-500 transition-colors"
+                        class="absolute top-2 right-2 p-1 text-gray-500 dark:text-gray-400 hover:text-rose-500 transition-colors touch-target"
+                        :aria-label="t('operators.removeRule')"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -184,6 +188,7 @@
                                 @change="normalizeRuleFlags(idx)"
                                 :placeholder="t('operators.regexFindPlaceholder')"
                                 class="w-full px-2 py-1.5 text-[11px] rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 outline-none focus:border-indigo-500/30"
+                                :aria-label="t('operators.regexFindPlaceholder')"
                             />
                         </div>
                         <div class="space-y-1">
@@ -198,14 +203,17 @@
                                 @change="normalizeRuleFlags(idx)"
                                 :placeholder="t('operators.regexReplacePlaceholder')"
                                 class="w-full px-2 py-1.5 text-[11px] rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 outline-none focus:border-indigo-500/30"
+                                :aria-label="t('operators.regexReplacePlaceholder')"
                             />
                         </div>
                     </div>
                 </div>
-                <p class="px-1 text-[10px] text-gray-400">{{ t('operators.regexReplaceHint') }}</p>
+                <p class="px-1 text-[10px] text-gray-500 dark:text-gray-400">
+                    {{ t('operators.regexReplaceHint') }}
+                </p>
                 <div
                     v-if="!props.modelValue.regex.rules?.length"
-                    class="text-center py-2 text-[10px] text-gray-400 italic"
+                    class="text-center py-2 text-[10px] text-gray-500 dark:text-gray-400 italic"
                 >
                     {{ t('operators.renameEmptyRules') }}
                 </div>
@@ -215,14 +223,17 @@
         <!-- Template Rename -->
         <div class="space-y-3 pt-4 border-t border-gray-100 dark:border-gray-800/50">
             <div class="flex items-center justify-between">
-                <label class="text-[11px] font-bold text-gray-400 uppercase tracking-tight">{{
-                    t('operators.templateRewrite')
-                }}</label>
+                <label
+                    class="text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight"
+                    >{{ t('operators.templateRewrite') }}</label
+                >
                 <button
                     @click="updateTemplate({ enabled: !props.modelValue.template?.enabled })"
                     :class="[
                         'text-[10px] font-medium transition-colors',
-                        props.modelValue.template?.enabled ? 'text-teal-600' : 'text-gray-300',
+                        props.modelValue.template?.enabled
+                            ? 'text-teal-600'
+                            : 'text-gray-500 dark:text-gray-400',
                     ]"
                 >
                     {{ statusLabel(props.modelValue.template?.enabled) }}
@@ -238,7 +249,8 @@
                             :value="props.modelValue.template.template || ''"
                             @input="(e) => updateTemplate({ template: e.target.value })"
                             placeholder="{emoji}{region}-{index}"
-                            class="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-gray-800 border border-teal-100/50 dark:border-teal-900/30 outline-none focus:ring-2 focus:ring-teal-500/10"
+                            class="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-gray-800 border border-teal-100/50 dark:border-teal-900/30 outline-none focus-visible:ring-2 focus-visible:ring-teal-500/10"
+                            :aria-label="t('operators.templateRewrite')"
                         />
                         <div class="flex flex-wrap gap-1.5">
                             <button
@@ -256,7 +268,7 @@
                                     '{server}',
                                 ]"
                                 :key="tag"
-                                class="text-[9px] bg-white dark:bg-gray-800 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100/30 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors"
+                                class="text-[9px] bg-white dark:bg-gray-800 text-teal-600 px-1.5 py-0.5 rounded border border-teal-100/30 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors touch-target-min"
                                 @click="
                                     updateTemplate({
                                         template: (props.modelValue.template.template || '') + tag,
@@ -267,14 +279,14 @@
                             </button>
                         </div>
                         <div class="flex items-center gap-2 mt-1">
-                            <span class="text-[9px] text-gray-400">{{
+                            <span class="text-[9px] text-gray-500 dark:text-gray-400">{{
                                 t('operators.recommendedTemplates')
                             }}</span>
                             <button
                                 v-for="tpl in presetTemplates"
                                 :key="tpl.nameKey"
                                 @click="applyPresetTemplate(tpl.template)"
-                                class="text-[9px] px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-teal-100 dark:hover:bg-teal-900/40 transition-colors"
+                                class="text-[9px] px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-teal-100 dark:hover:bg-teal-900/40 transition-colors touch-target-min"
                             >
                                 {{ t(tpl.nameKey) }}
                             </button>
@@ -292,6 +304,7 @@
                             "
                             type="number"
                             class="w-14 px-2 py-1 text-[10px] rounded bg-white dark:bg-gray-800 border border-teal-100/30 outline-none"
+                            :aria-label="t('operators.startIndex')"
                         />
                     </div>
                 </div>

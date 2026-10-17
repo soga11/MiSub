@@ -1,4 +1,7 @@
 <script setup>
+    import { useI18n } from '../../i18n/index.js';
+
+    const { t } = useI18n();
     import { ref, computed, watch } from 'vue';
 
     const props = defineProps({
@@ -16,7 +19,7 @@
         },
         placeholder: {
             type: String,
-            default: '搜索...',
+            default: '',
         },
     });
 
@@ -118,7 +121,7 @@
         <div class="relative">
             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <svg
-                    class="h-5 w-5 text-gray-400"
+                    class="h-5 w-5 text-gray-500 dark:text-gray-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -135,9 +138,10 @@
             <input
                 v-model="searchQuery"
                 type="text"
-                :placeholder="placeholder"
-                class="w-full pl-10 pr-12 py-3 bg-white/90 dark:bg-gray-900/80 backdrop-blur-md border border-gray-200 dark:border-gray-700 misub-radius-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-transparent smooth-all text-gray-900 dark:text-gray-100"
+                :placeholder="placeholder || t('common.searchPlaceholder')"
+                class="w-full pl-10 pr-12 py-3 bg-white/90 dark:bg-gray-900/80 backdrop-blur-md border border-gray-200 dark:border-gray-700 misub-radius-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus:border-transparent smooth-all text-gray-900 dark:text-gray-100"
                 @keyup.enter="addToHistory(searchQuery)"
+                :aria-label="placeholder || t('common.searchPlaceholder')"
             />
 
             <!-- 清除按钮 -->
@@ -147,7 +151,7 @@
                 class="absolute inset-y-0 right-0 pr-3 flex items-center"
             >
                 <svg
-                    class="h-5 w-5 text-gray-400 hover:text-gray-600 smooth-all"
+                    class="h-5 w-5 text-gray-500 dark:text-gray-400 hover:text-gray-600 smooth-all"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -188,7 +192,9 @@
             class="absolute top-full left-0 right-0 mt-2 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md misub-radius-lg card-shadow border border-gray-200 dark:border-gray-700 z-50"
         >
             <div class="p-2">
-                <p class="text-xs text-gray-500 dark:text-gray-400 px-3 py-1">搜索建议</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 px-3 py-1">
+                    {{ t('common.searchSuggestions') }}
+                </p>
                 <button
                     v-for="suggestion in suggestions"
                     :key="suggestion"
@@ -203,13 +209,15 @@
         <!-- 搜索结果统计 -->
         <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
             <span>
-                找到 {{ searchResults.length }} 个结果
-                <span v-if="searchQuery">包含 "{{ searchQuery }}"</span>
+                {{ t('common.searchResultCount', { count: searchResults.length }) }}
+                <span v-if="searchQuery">{{
+                    t('common.searchQueryFilter', { query: searchQuery })
+                }}</span>
             </span>
 
             <!-- 搜索历史快捷访问 -->
             <div v-if="searchHistory.length > 0" class="flex items-center gap-2">
-                <span class="text-xs">最近:</span>
+                <span class="text-xs">{{ t('common.recent') }}:</span>
                 <button
                     v-for="history in searchHistory.slice(0, 3)"
                     :key="history"

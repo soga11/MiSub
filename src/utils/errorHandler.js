@@ -3,6 +3,10 @@
  * @author MiSub Team
  */
 
+import { t } from '../i18n/index.js';
+import { isChunkLoadError } from './chunk-reload.js';
+import { isNetworkErrorMessage } from './network-error.js';
+
 let toastHandler = null;
 let monitoringEndpoint = null;
 let monitoringHeaders = null;
@@ -169,6 +173,9 @@ class ErrorHandler {
 
     /**
      * 获取用户友好的错误消息
+     *
+     * 文案统一走 i18n（`errors.*`）：这个函数是全局兜底提示的出口，
+     * 原先硬编码中文会让英文界面下的所有错误提示都变成中文。
      * @param {Object} errorInfo - 错误信息
      * @returns {string} 用户友好的消息
      */
@@ -176,39 +183,61 @@ class ErrorHandler {
         const { message, context } = errorInfo;
 
         if (message.includes('timeout')) {
-            return '请求超时，请稍后重试';
+            return t('errors.timeout');
         }
         if (message.includes('Resource load failed')) {
             const failedSrc = errorInfo.additionalData?.src || '';
             const fileName = failedSrc.split('/').pop() || 'unknown';
             if (typeof navigator !== 'undefined' && /firefox/i.test(navigator.userAgent)) {
-                return `资源加载失败 (${fileName})。可能是浏览器隐私设置或扩展拦截了部分资源。`;
+                return t('errors.resourceLoadIntercepted', { fileName });
             }
-            return `资源加载失败 (${fileName})，请尝试刷新页面`;
+            // 走到这里说明自动清缓存重载已经试过一次且仍然失败，
+            // 所以提示「强制刷新」而不是普通刷新（普通刷新会命中同一份缓存）。
+            return t('errors.resourceLoad', { fileName });
         }
-        if (message.includes('network') || message.includes('fetch')) {
-            return '网络连接失败，请检查网络';
+        // 必须排在 network 判断之前：动态 chunk 加载失败的消息里含 "fetch"
+        // （Failed to fetch dynamically imported module），会被下面的 network 分支
+        // 误判成网络问题，让用户去检查网络 —— 而真实原因是发版后旧页面请求了
+        // 已删除的资源，检查网络永远解决不了。判定复用 chunk-reload 的谓词，
+        // 避免两处模式匹配漂移。
+        if (isChunkLoadError(message)) {
+            return t('errors.chunkLoadFailed');
+        }
+        if (isNetworkErrorMessage(message)) {
+            return t('errors.network');
         }
         if (message.includes('Unauthorized') || message.includes('401')) {
-            return '认证失败，请重新登录';
+            return t('errors.unauthorized');
         }
-        if (message.includes('MISUB_KV') || message.includes('KV 绑定')) {
-            return '服务端存储未初始化，请联系管理员配置 KV 绑定';
+        // ⚠️ 下面两条匹配的是**服务端返回的消息文本**（functions/ 里产生的中文），
+        // 不是界面文案，所以不能用 t() 改写，也不能本地化。
+        // 这是一条隐式跨端契约，用正则容忍语序/虚词差异，别退化成 includes 精确子串：
+        //   - 服务端既会说「请先恢复 KV 绑定」，也会说「KV 未绑定」，
+        //     多一个「未」字就让 includes('KV 绑定') 整个失效；
+        //   - 服务端 D1 适配器抛的是英文 'D1 database not available'。
+        // tests/unit/error-handler-server-contract.test.js 会扫描 functions/ 钉住这条契约。
+        if (/MISUB_KV|KV\s*(?:未)?绑定/.test(message)) {
+            return t('errors.kvMissing');
         }
-        if (message.includes('MISUB_DB') || message.includes('D1 绑定')) {
-            return '服务端数据库未初始化，请联系管理员配置 D1 绑定';
+        if (/MISUB_DB|D1\s*(?:未)?绑定|D1 database not available/i.test(message)) {
+            return t('errors.d1Missing');
         }
-        if (message.includes('storage') || message.includes('保存失败')) {
-            return '数据保存失败，请稍后重试';
+        // 这两种语言的措辞都要认：message 既可能来自服务端（中文），
+        // 也可能是客户端 `throw new Error(t('store.saveFailed'))` 抛出的本地化文案。
+        // 只认中文的话，英文界面下这条分支永远不命中，用户看到的是通用提示 ——
+        // 分类随界面语言漂移。tests/unit/error-message-i18n-collision.test.js
+        // 会断言同一个 key 的中英版本落在同一分支。
+        if (/storage|保存失败|save failed/i.test(message)) {
+            return t('errors.saveFailed');
         }
         if (context?.includes('subscription')) {
-            return '订阅更新失败，请稍后重试';
+            return t('errors.subscriptionFailed');
         }
         if (context?.includes('batch')) {
-            return '批量操作失败，已降级为逐个处理';
+            return t('errors.batchFailed');
         }
 
-        return '操作失败，请稍后重试';
+        return t('errors.generic');
     }
 
     /**

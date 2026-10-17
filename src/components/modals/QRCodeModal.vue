@@ -1,7 +1,13 @@
 <script setup>
+    import { useI18n } from '../../i18n/index.js';
+
+    const { t } = useI18n();
     import { ref, watch, nextTick } from 'vue';
     import QRCode from 'qrcode';
     import Modal from '../forms/Modal.vue';
+    import { useToastStore } from '../../stores/toast.js';
+
+    const { showToast } = useToastStore();
 
     const props = defineProps({
         show: {
@@ -14,7 +20,9 @@
         },
         title: {
             type: String,
-            default: '二维码',
+            // 默认值不能用 t()：defineProps 的对象字面量会被提升到模块级，
+            // 此时 setup 作用域的 t 尚不存在。改由模板兜底。
+            default: '',
         },
     });
 
@@ -34,7 +42,9 @@
                 },
             });
         } catch (err) {
+            // 生成失败时画布是空白的，必须告知用户，否则只会看到一个空框
             console.error('QR Code generation failed', err);
+            showToast(t('qr.generateFailed'), 'error');
         }
     };
 
@@ -61,7 +71,9 @@
 <template>
     <Modal :show="show" @update:show="emit('update:show', $event)">
         <template #title>
-            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ title }}</h3>
+            <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100">
+                {{ title || t('qr.title') }}
+            </h3>
         </template>
         <template #body>
             <div class="flex flex-col items-center gap-6 py-4">
@@ -93,7 +105,7 @@
                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                         />
                     </svg>
-                    保存二维码图片
+                    {{ t('qr.saveImage') }}
                 </button>
             </div>
         </template>

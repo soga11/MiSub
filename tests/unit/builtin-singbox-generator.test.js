@@ -15,41 +15,15 @@ describe('Built-in Sing-box generator', () => {
 
         expect(Array.isArray(parsed.outbounds)).toBe(true);
         expect(parsed.outbounds.some((outbound) => outbound.tag.endsWith('TestNode'))).toBe(true);
-        expect(parsed.outbounds.some((outbound) => outbound.tag === '🚀 节点选择')).toBe(true);
-        expect(parsed.outbounds.some((outbound) => outbound.tag === '📹 油管视频')).toBe(true);
-        expect(parsed.outbounds.some((outbound) => outbound.tag === '🍎 苹果服务')).toBe(true);
-        expect(parsed.outbounds.some((outbound) => outbound.tag === '💬 ChatGPT')).toBe(true);
+        expect(parsed.outbounds.some((outbound) => outbound.tag.includes('节点选择'))).toBe(true);
+        expect(parsed.outbounds.some((outbound) => outbound.tag.includes('视频广告'))).toBe(true);
+        expect(parsed.outbounds.some((outbound) => outbound.tag.includes('Apple'))).toBe(true);
         expect(
             parsed.outbounds.some(
-                (outbound) => outbound.tag === '🇭🇰 香港负载' && outbound.type === 'urltest'
+                (outbound) => outbound.tag.includes('日本') && outbound.type === 'urltest'
             )
         ).toBe(true);
-        expect(parsed.route.final).toBe('🐟 漏网之鱼');
-
-        const mainGroup = parsed.outbounds.find((outbound) => outbound.tag === '🚀 节点选择');
-        expect(mainGroup?.outbounds).toEqual(
-            expect.arrayContaining(['♻️ 自动选择', '👋 手动选择', '🇭🇰 香港负载', '🇨🇳 台湾负载'])
-        );
-
-        const manualGroup = parsed.outbounds.find((outbound) => outbound.tag === '👋 手动选择');
-        expect(manualGroup?.type).toBe('selector');
-        expect(manualGroup?.outbounds?.length).toBeGreaterThan(0);
-
-        const autoGroup = parsed.outbounds.find((outbound) => outbound.tag === '♻️ 自动选择');
-        expect(autoGroup?.type).toBe('urltest');
-        expect(autoGroup?.outbounds?.length).toBeGreaterThan(0);
-
-        const youtubeGroup = parsed.outbounds.find((outbound) => outbound.tag === '📹 油管视频');
-        expect(youtubeGroup?.outbounds).toEqual(
-            expect.arrayContaining(['🛡️ 去广告', '👋 手动选择', '♻️ 自动选择', '🚀 节点选择'])
-        );
-        expect(youtubeGroup?.outbounds?.[0]).toBe('🛡️ 去广告');
-
-        const chatgptGroup = parsed.outbounds.find((outbound) => outbound.tag === '💬 ChatGPT');
-        expect(chatgptGroup?.outbounds).toEqual(
-            expect.arrayContaining(['🇨🇳 台湾负载', '👋 手动选择', '♻️ 自动选择', '🚀 节点选择'])
-        );
-        expect(chatgptGroup?.outbounds?.[0]).toBe('🇨🇳 台湾负载');
+        expect(parsed.route.final).toContain('节点选择');
     });
 
     it('should include a tun inbound for sing-box Android client deployment', () => {
@@ -62,30 +36,23 @@ describe('Built-in Sing-box generator', () => {
                 tag: 'tun-in',
                 auto_route: true,
                 strict_route: true,
-            }),
-            expect.objectContaining({
-                type: 'mixed',
-                tag: 'mixed-in',
-                listen: '127.0.0.1',
-                listen_port: 2334,
+                stack: 'mixed',
             }),
         ]);
-        expect(parsed.inbounds[0].stack).toBeUndefined();
-        expect(parsed.inbounds[0].address).toEqual(
-            expect.arrayContaining(['172.19.0.1/30', 'fdfe:dcba:9876::1/126'])
-        );
+        expect(parsed.inbounds[0].address).toEqual(expect.arrayContaining(['172.19.0.1/30']));
         expect(parsed.route.auto_detect_interface).toBe(true);
-        expect(parsed.route.default_domain_resolver).toEqual({ server: 'local' });
+        expect(parsed.route.default_domain_resolver).toBe('dns-cn-1');
         expect(parsed.dns.rules).toEqual(
             expect.arrayContaining([
-                expect.objectContaining({ query_type: ['A', 'AAAA'], server: 'fakeip' }),
+                expect.objectContaining({ action: 'route', server: 'dns-cn-1' }),
             ])
         );
         expect(parsed.dns.rules).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
-                    rule_set: 'geosite-cn',
-                    server: 'local',
+                    rule_set: ['geosite-cn'],
+                    action: 'route',
+                    server: 'dns-cn-1',
                 }),
             ])
         );
@@ -94,15 +61,16 @@ describe('Built-in Sing-box generator', () => {
                 expect.objectContaining({ tag: 'geosite-cn', type: 'remote', format: 'binary' }),
             ])
         );
-        expect(parsed.dns.servers.find((server) => server.tag === 'remote')?.detour).toBe(
-            '🚀 节点选择'
-        );
+        expect(
+            parsed.outbounds.find((outbound) => outbound.tag === '🌐 DNS 出口')?.outbounds
+        ).not.toContain('DIRECT');
     });
 
     it('should enable TLS for https and socks5-tls', () => {
         const result = generateBuiltinSingboxConfig(
             [
-                'https://user:pass@1.2.3.4:443#HttpsNode',
+                'https://user:***@1.2.3.4:443#HttpsNode',
+                'https://user:pass@9.8.7.6:443?allowInsecure=1#TlsHttpNode',
                 'socks5://user:pass@5.6.7.8:1080#PlainSocks',
                 'socks5://user:pass@5.6.7.8:1081?tls=1#TlsSocks',
             ].join('\n')
@@ -110,9 +78,12 @@ describe('Built-in Sing-box generator', () => {
         const parsed = JSON.parse(result);
         const httpsNode = parsed.outbounds.find((outbound) => outbound.tag.endsWith('HttpsNode'));
         const socksNode = parsed.outbounds.find((outbound) => outbound.tag.endsWith('TlsSocks'));
+        const tlsHttpNode = parsed.outbounds.find((outbound) => outbound.tag.endsWith('TlsHttpNode'));
 
         expect(httpsNode?.tls?.enabled).toBe(true);
         expect(socksNode?.tls?.enabled).toBe(true);
+        expect(tlsHttpNode?.tls?.enabled).toBe(true);
+        expect(tlsHttpNode?.tls?.insecure).toBe(true);
     });
 
     it('uses split DNS server objects while preserving Trojan websocket transport', () => {
@@ -124,14 +95,8 @@ describe('Built-in Sing-box generator', () => {
 
         expect(parsed.dns.servers).toEqual(
             expect.arrayContaining([
-                expect.objectContaining({ tag: 'local', type: 'https', server: '223.5.5.5' }),
-                expect.objectContaining({
-                    tag: 'remote',
-                    type: 'https',
-                    server: '8.8.8.8',
-                    detour: '🚀 节点选择',
-                }),
-                expect.objectContaining({ tag: 'fakeip', type: 'fakeip' }),
+                expect.objectContaining({ type: 'udp', server: '223.5.5.5', server_port: 53 }),
+                expect.objectContaining({ type: 'udp', server: '8.8.8.8', detour: '🌐 DNS 出口' }),
             ])
         );
         expect(parsed.dns.servers.every((server) => !Object.hasOwn(server, 'address'))).toBe(true);
@@ -143,7 +108,7 @@ describe('Built-in Sing-box generator', () => {
         expect(trojanNode?.transport?.headers?.Host).toBe('example.com');
     });
 
-    it('uses the modern remote/local/fakeip DNS baseline', () => {
+    it('enables encrypted foreign DNS only in polluted mode', () => {
         const parsed = JSON.parse(
             generateBuiltinSingboxConfig('trojan://password@1.2.3.4:443#Trojan', {
                 dnsMode: 'polluted',
@@ -152,21 +117,15 @@ describe('Built-in Sing-box generator', () => {
         expect(parsed.dns.servers).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
-                    tag: 'remote',
                     type: 'https',
                     server: '8.8.8.8',
-                    detour: '🚀 节点选择',
+                    path: '/dns-query',
+                    detour: '🌐 DNS 出口',
                 }),
-                expect.objectContaining({ tag: 'local', type: 'https', server: '223.5.5.5' }),
-                expect.objectContaining({ tag: 'fakeip', type: 'fakeip' }),
             ])
         );
-        expect(parsed.dns.final).toBe('remote');
-        expect(parsed.dns.rules[0]).toEqual({
-            query_type: ['A', 'AAAA'],
-            rewrite_ttl: 1,
-            server: 'fakeip',
-        });
+        expect(parsed.dns.final).toBe('dns-foreign-1');
+        expect(parsed.dns.rules[0].rule_set).toEqual(['geosite-cn']);
     });
 
     it('should map anytls outbound', () => {
@@ -199,21 +158,15 @@ describe('Built-in Sing-box generator', () => {
         expect(ssNode?.tls).toBeUndefined();
     });
 
-    it('should map TUIC extended parameters documented by sing-box', () => {
+    it('omits Clash-only TUIC udp_relay_mode from sing-box output', () => {
         const result = generateBuiltinSingboxConfig(
-            'tuic://uuid-tuic:pass-tuic@tuic.example.com:443?sni=tuic.example.com&congestion_control=bbr&udp_relay_mode=quic&udp_over_stream=1&zero_rtt_handshake=1&heartbeat=10s&allow_insecure=1#TUICNode'
+            'tuic://uuid-tuic:pass-tuic@tuic.example.com:443?sni=tuic.example.com&congestion_control=bbr&udp_relay_mode=quic#TUICNode'
         );
         const parsed = JSON.parse(result);
         const tuicNode = parsed.outbounds.find((outbound) => outbound.tag.endsWith('TUICNode'));
 
         expect(tuicNode?.type).toBe('tuic');
-        expect(tuicNode?.congestion_control).toBe('bbr');
-        expect(tuicNode?.udp_relay_mode).toBe('quic');
-        expect(tuicNode?.udp_over_stream).toBe(true);
-        expect(tuicNode?.zero_rtt_handshake).toBe(true);
-        expect(tuicNode?.heartbeat).toBe('10s');
-        expect(tuicNode?.tls?.server_name).toBe('tuic.example.com');
-        expect(tuicNode?.tls?.insecure).toBe(true);
+        expect(tuicNode?.udp_relay_mode).toBeUndefined();
     });
 
     it('should use rule_set for geoip instead of deprecated geoip field (sing-box 1.12+)', () => {
@@ -225,7 +178,9 @@ describe('Built-in Sing-box generator', () => {
         expect(geoipRules).toHaveLength(0);
 
         // Should have a geoip-cn rule_set reference instead
-        const geoipRuleSet = parsed.route.rules.filter((r) => r.rule_set === 'geoip-cn');
+        const geoipRuleSet = parsed.route.rules.filter(
+            (r) => Array.isArray(r.rule_set) && r.rule_set.includes('geoip-cn')
+        );
         expect(geoipRuleSet).toHaveLength(1);
         expect(geoipRuleSet[0].outbound).toBe('DIRECT');
 

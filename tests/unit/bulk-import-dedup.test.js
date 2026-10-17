@@ -82,4 +82,16 @@ ss://new@server5.com:10000`;
         // 应该只添加 2 个新节点（NewSurge 和 server5）
         expect(dataStore.subscriptions.length).toBe(initialCount + 2);
     });
+
+    it('明文 HTTP proxy URI 应作为节点导入而非订阅链接', () => {
+        bulkImport.handleBulkImport(
+            'http://alice:p%40ss%3Aword@proxy.example.com:8080#plain-http',
+            ''
+        );
+
+        const imported = dataStore.subscriptions.find((item) => item.name === 'plain-http');
+        expect(imported).toBeDefined();
+        expect(dataStore.subscriptions).toHaveLength(3);
+        expect(imported.url).toBe('http://alice:p%40ss%3Aword@proxy.example.com:8080#plain-http');
+    });
 });

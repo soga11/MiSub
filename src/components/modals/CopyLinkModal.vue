@@ -1,4 +1,7 @@
 <script setup>
+    import { useI18n } from '../../i18n/index.js';
+
+    const { t } = useI18n();
     import { computed } from 'vue';
     import Modal from '../forms/Modal.vue';
     import { useToastStore } from '@/stores/toast';
@@ -28,7 +31,7 @@
 
     const clients = computed(() => [
         {
-            name: '默认 (自动探测)',
+            name: t('copyLink.autoDetect'),
             type: 'default',
             icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1',
             format: '',
@@ -63,7 +66,7 @@
 
     const copyToClipboard = async (format) => {
         if (!baseUrl.value) {
-            showToast('请在设置中配置一个固定的"订阅组分享Token"', 'error');
+            showToast(t('copyLink.tokenMissing'), 'error');
             return;
         }
 
@@ -72,7 +75,7 @@
         try {
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 await navigator.clipboard.writeText(link);
-                showToast('链接已复制到剪贴板！', 'success');
+                showToast(t('copyLink.copied'), 'success');
                 close();
             } else {
                 fallbackCopy(link);
@@ -95,13 +98,13 @@
         try {
             const successful = document.execCommand('copy');
             if (successful) {
-                showToast('链接已复制到剪贴板！', 'success');
+                showToast(t('copyLink.copied'), 'success');
                 close();
             } else {
-                showToast('复制失败，请手动复制', 'error');
+                showToast(t('copyLink.copyFailed'), 'error');
             }
         } catch (err) {
-            showToast('复制失败，请手动复制', 'error');
+            showToast(t('copyLink.copyFailed'), 'error');
         }
         document.body.removeChild(textArea);
     };
@@ -110,7 +113,9 @@
 <template>
     <Modal :show="show" @update:show="close" :show-cancel="false" :show-confirm="false">
         <template #title>
-            <h3 class="text-xl font-bold text-gray-900 dark:text-white">复制订阅链接</h3>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+                {{ t('copyLink.title') }}
+            </h3>
         </template>
 
         <template #body>
@@ -118,12 +123,12 @@
                 <p
                     class="text-red-500 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg border border-red-200 dark:border-red-800"
                 >
-                    检测到您未在设置中配置“订阅组分享Token”，无法生成链接。请前往设置页面配置。
+                    {{ t('copyLink.tokenMissingHint') }}
                 </p>
             </div>
             <div v-else class="space-y-3 mt-4">
                 <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    如果您使用的客户端有特殊格式要求，请点选对应的专用链接进行复制。
+                    {{ t('copyLink.formatHint') }}
                 </p>
 
                 <div
@@ -161,9 +166,9 @@
                     </div>
 
                     <button
-                        class="px-3 py-1 text-sm font-medium text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        class="px-3 py-1 text-sm font-medium text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30 rounded-lg opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100"
                     >
-                        复制
+                        {{ t('actions.copy') }}
                     </button>
                 </div>
             </div>

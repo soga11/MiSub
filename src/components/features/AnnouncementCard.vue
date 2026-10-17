@@ -2,8 +2,11 @@
     import { ref, computed, watch } from 'vue';
     import DOMPurify from 'dompurify';
     import { useI18n } from '@/i18n/index.js';
+    import { useToastStore } from '@/stores/toast.js';
+    import { readRawPreference, writeRawPreference } from '@/utils/local-preference.js';
 
     const { t } = useI18n();
+    const { showToast } = useToastStore();
 
     const props = defineProps({
         announcement: {
@@ -42,21 +45,19 @@
     const dismiss = (e) => {
         e.stopPropagation();
         isVisible.value = false;
-        try {
-            if (props.announcement.updatedAt) {
-                localStorage.setItem(
-                    `announcement_dismissed_${props.announcement.updatedAt}`,
-                    'true'
-                );
-            }
-        } catch (e) {
-            console.warn('LocalStorage access failed', e);
+        if (props.announcement.updatedAt) {
+            // 写失败时必须告知用户：否则下次刷新公告又会出现，看起来像「忽略没生效」。
+            const persisted = writeRawPreference(
+                `announcement_dismissed_${props.announcement.updatedAt}`,
+                'true'
+            );
+            if (!persisted) showToast(t('errors.preferenceNotSaved'), 'error');
         }
     };
 
     const checkVisibility = () => {
         if (props.announcement?.dismissible && props.announcement?.updatedAt) {
-            const dismissed = localStorage.getItem(
+            const dismissed = readRawPreference(
                 `announcement_dismissed_${props.announcement.updatedAt}`
             );
             if (dismissed) {
@@ -205,8 +206,9 @@
                         <button
                             v-if="announcement.dismissible"
                             @click="dismiss"
-                            class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-all"
+                            class="p-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 transition-all touch-target"
                             :title="t('common.dismissAnnouncement')"
+                            :aria-label="t('common.dismissAnnouncement')"
                         >
                             <svg
                                 class="h-4 w-4"
@@ -231,7 +233,7 @@
 
                     <div
                         v-if="announcement.updatedAt"
-                        class="pt-2 text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest flex items-center gap-2"
+                        class="pt-2 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2"
                     >
                         <span class="w-1 h-1 rounded-full bg-current opacity-40"></span>
                         {{

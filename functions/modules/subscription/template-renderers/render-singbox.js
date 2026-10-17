@@ -2,7 +2,6 @@ import { urlsToClashProxies } from '../../../utils/url-to-clash.js';
 import { normalizeUnifiedTemplateModel } from '../template-model.js';
 import { buildSingboxDnsConfig, DNS_PROXY_GROUP, SINGBOX_CN_RULE_SET } from '../safe-dns.js';
 import { getSingboxDnsRuleSet, pinRemoteRuleUrl } from '../builtin-rules-provider.js';
-import { buildModernSingboxConfig } from '../modern-singbox-config.js';
 
 function sanitizeTag(value) {
     return String(value || '').trim() || 'Untitled';
@@ -13,7 +12,7 @@ function parsePort(port) {
     return Number.isFinite(num) ? num : undefined;
 }
 
-export function buildOutbound(proxy) {
+function buildOutbound(proxy) {
     if (!proxy || !proxy.server || !proxy.port) return null;
 
     const type = String(proxy.type || '').toLowerCase();
@@ -21,6 +20,25 @@ export function buildOutbound(proxy) {
     const server = proxy.server;
     const serverPort = parsePort(proxy.port);
     if (!serverPort) return null;
+
+    if (type === 'http' || type === 'https') {
+        const outbound = {
+            tag,
+            type: 'http',
+            server,
+            server_port: serverPort,
+            username: proxy.username || undefined,
+            password: proxy.password || undefined,
+        };
+        if (type === 'https' || proxy.tls || proxy.sni || proxy.servername) {
+            outbound.tls = {
+                enabled: true,
+                server_name: proxy.servername ?? proxy.sni ?? server,
+                insecure: proxy['skip-cert-verify'] === true || proxy.skipCertVerify === true,
+            };
+        }
+        return outbound;
+    }
 
     if (type === 'trojan') {
         return {
@@ -69,7 +87,7 @@ export function buildOutbound(proxy) {
             server_port: serverPort,
             uuid: proxy.uuid || '',
             security: proxy.cipher || 'auto',
-            // sing-box VMess schema 无 udp_relay_mode / congestion_control，输出会导致解码失败
+            congestion_control: proxy['congestion-control'] || 'cubic',
             alter_id: Number.isFinite(Number(proxy.alterId)) ? Number(proxy.alterId) : 0,
         };
 
@@ -163,7 +181,9 @@ export function buildOutbound(proxy) {
                     public_key: realityOpts['public-key'] || realityOpts.publicKey || '',
                     short_id: realityOpts['short-id'] || realityOpts.shortId || '',
                 };
-                // spider_x 为 Xray 专有字段，官方 sing-box 内核会拒绝（unknown field），故不输出
+                if (realityOpts['spider-x'] || realityOpts.spiderX) {
+                    outbound.tls.reality.spider_x = realityOpts['spider-x'] || realityOpts.spiderX;
+                }
             }
         }
         return outbound;
@@ -202,7 +222,7 @@ export function buildOutbound(proxy) {
         const congestionControl =
             proxy['congestion-control'] || proxy['congestion-controller'] || proxy.congestion;
         if (congestionControl) outbound.congestion_control = congestionControl;
-        if (proxy['udp-relay-mode']) outbound.udp_relay_mode = proxy['udp-relay-mode'];
+        // sing-box TUIC schema has no udp_relay_mode field.
         if (proxy['udp-over-stream'] !== undefined)
             outbound.udp_over_stream = Boolean(proxy['udp-over-stream']);
         if (proxy['zero-rtt-handshake'] !== undefined || proxy['reduce-rtt'] !== undefined) {
@@ -378,7 +398,50 @@ export function renderSingboxFromTemplateModel(model, options = {}) {
             ? normalizedModel.proxies
             : urlsToClashProxies(proxyUrls);
     const proxyOutbounds = proxies.map(buildOutbound).filter(Boolean);
-    const config = buildModernSingboxConfig(proxyOutbounds);
+    const groupOutbounds = buildGroupOutbounds(
+        normalizedModel.groups.filter((g) => Array.isArray(g.members) && g.members.length > 0)
+    );
+    const ruleSetObjects = [
+        getSingboxDnsRuleSet(),
+        ...buildRuleSets(normalizedModel.rules).filter(
+            (ruleSet) => ruleSet.tag !== SINGBOX_CN_RULE_SET
+        ),
+    ];
+    const routeRules = normalizedModel.rules.map(mapRuleToSingbox).filter(Boolean);
+    const defaultOutbound =
+        normalizedModel.groups.find((group) => group.name !== DNS_PROXY_GROUP)?.name || 'DIRECT';
+    const dnsConfig = buildSingboxDnsConfig(normalizedModel.settings?.customDnsOverride, {
+        mode: normalizedModel.settings?.dnsMode,
+        proxyGroup: DNS_PROXY_GROUP,
+    });
+
+    const config = {
+        log: { level: 'info' },
+        dns: dnsConfig,
+        inbounds: [
+            {
+                type: 'tun',
+                tag: 'tun-in',
+                address: ['172.19.0.1/30'],
+                auto_route: true,
+                strict_route: true,
+                stack: 'mixed',
+            },
+        ],
+        outbounds: [
+            { tag: 'DIRECT', type: 'direct' },
+            { tag: 'REJECT', type: 'block' },
+            ...proxyOutbounds,
+            ...groupOutbounds,
+        ],
+        route: {
+            auto_detect_interface: true,
+            default_domain_resolver: dnsConfig.servers[0]?.tag || 'dns-cn-1',
+            final: defaultOutbound,
+            rule_set: ruleSetObjects,
+            rules: routeRules,
+        },
+    };
 
     return JSON.stringify(config, null, 2) + '\n';
 }

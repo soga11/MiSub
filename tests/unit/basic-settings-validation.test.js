@@ -47,8 +47,10 @@ describe('BasicSettings validation feedback', () => {
 
         expect(wrapper.props().settings.mytoken).toBe('settings');
         expect(wrapper.text()).toContain('系统保留路径不可用作自定义订阅 Token');
-        expect(wrapper.props().settings.customLoginPath).toBe('login');
         expect(wrapper.text()).toContain('"/login" 是系统保留路径，不可用作自定义管理后台路径');
+        expect(wrapper.text()).toContain('订阅 Token 与管理密码相互独立');
+        expect(wrapper.text()).toContain('旧链接将立即失效');
+        expect(wrapper.props().settings.customLoginPath).toBe('login');
     });
 
     it('allows URL path-safe symbol characters in subscription tokens for stronger secrets', async () => {

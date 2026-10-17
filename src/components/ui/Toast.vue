@@ -1,7 +1,14 @@
 <script setup>
     import { useToastStore } from '../../stores/toast.js';
+    import { useI18n } from '../../i18n/index.js';
 
     const toastStore = useToastStore();
+    const { t } = useI18n();
+
+    // Screen readers announce each toast on insertion. Errors are assertive so
+    // they interrupt; everything else is polite and waits for a pause.
+    const getToastRole = (type) => (type === 'error' ? 'alert' : 'status');
+    const getToastAriaLive = (type) => (type === 'error' ? 'assertive' : 'polite');
 
     // 🆕 增强的 Toast 配置
     const getToastConfig = (type) => {
@@ -44,6 +51,9 @@
             <div
                 v-for="toast in toastStore.toasts"
                 :key="toast.id"
+                :role="getToastRole(toast.type)"
+                :aria-live="getToastAriaLive(toast.type)"
+                aria-atomic="true"
                 class="toast-container pointer-events-auto w-full sm:w-auto sm:min-w-80 max-w-md backdrop-blur-lg border border-white/20 misub-radius-lg shadow-2xl overflow-hidden ring-1 transition-all duration-300 relative"
                 :class="[getToastConfig(toast.type).bg, getToastConfig(toast.type).ring]"
             >
@@ -52,8 +62,8 @@
                     <!-- 关闭按钮 -->
                     <button
                         @click="handleClose(toast.id)"
-                        class="toast-close-btn absolute top-2 right-2 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors focus:outline-none focus:ring-2 focus:ring-white/50 w-7 h-7"
-                        aria-label="关闭提示"
+                        class="toast-close-btn absolute top-2 right-2 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 w-7 h-7 touch-target"
+                        :aria-label="t('common.toastClose')"
                     >
                         <svg
                             class="w-4 h-4 text-white flex-shrink-0"
@@ -187,11 +197,10 @@
         }
     }
 
-    /* 移动端优化 */
-    @media (max-width: 640px) {
+    /* 移动端优化：粗指针设备下把关闭按钮贴边，避免放大热区后遮挡内容
+       （44px 尺寸由全局 .touch-target 提供，此处只做位移补偿） */
+    @media (pointer: coarse) {
         .toast-close-btn {
-            min-width: 44px;
-            min-height: 44px;
             top: 4px;
             right: 4px;
         }

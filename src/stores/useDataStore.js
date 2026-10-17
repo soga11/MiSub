@@ -68,44 +68,54 @@ export const useDataStore = defineStore('data', () => {
         }
     }
 
+    let fetchDataPromise = null;
+
     async function fetchData(forceRefresh = false) {
-        if (isLoading.value) return;
+        if (fetchDataPromise) return fetchDataPromise;
 
         // Effective Cache Check
-        if (hasDataLoaded.value && !forceRefresh) return;
+        if (hasDataLoaded.value && !forceRefresh) return true;
 
         if (!forceRefresh) {
             const cachedData = dataCache.get();
             if (cachedData) {
                 hydrateFromData(cachedData);
-                return;
+                return true;
             }
         }
 
-        isLoading.value = true;
-        try {
-            const data = await api.get('/api/data');
+        fetchDataPromise = (async () => {
+            isLoading.value = true;
+            try {
+                const data = await api.get('/api/data');
 
-            if (data.error) {
-                throw new Error(data.error);
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                hydrateFromData(data); // Re-use hydration logic
+                pruneInvalidReferences(); // 数据拉取后执行自愈
+                clearDirty();
+                return true;
+            } catch (error) {
+                console.error('Failed to fetch data:', error);
+                showToast(t('store.fetchDataFailed', { message: error.message }), 'error');
+                // 不向调用方抛出：所有调用点都没有 try/catch，rejection 会冒泡成
+                // 全局 unhandledrejection，被 main.js 处理器再提示一次，
+                // 用户会看到两个「操作失败」弹窗。
+                return false;
+            } finally {
+                isLoading.value = false;
+                fetchDataPromise = null;
             }
-
-            hydrateFromData(data); // Re-use hydration logic
-            pruneInvalidReferences(); // 数据拉取后执行自愈
-            clearDirty();
-        } catch (error) {
-            console.error('Failed to fetch data:', error);
-            showToast(t('store.fetchDataFailed', { message: error.message }), 'error');
-            throw error;
-        } finally {
-            isLoading.value = false;
-        }
+        })();
+        return fetchDataPromise;
     }
 
     async function saveData() {
         if (isLoading.value) {
             showToast(t('store.tooFrequent'), 'warning');
-            return;
+            return false;
         }
 
         isLoading.value = true;
@@ -167,20 +177,42 @@ export const useDataStore = defineStore('data', () => {
                 ruleTemplates: ruleTemplates.value,
                 config: settingsStore.config,
             });
+
+            return true;
         } catch (error) {
             console.error('[Store] Failed to save data:', error);
             showToast(t('store.saveDataFailed', { message: error.message }), 'error');
             saveState.value = 'idle';
-            throw error;
+            // 同 fetchData：提示一次即可，不再向上抛出避免二次弹窗
+            return false;
         } finally {
             isLoading.value = false;
         }
     }
 
-    async function saveSettings(newSettings) {
+    /**
+     * 保存设置（服务端会做 { ...oldSettings, ...newSettings } 合并，
+     * 所以可以只传变化的那几个字段）。
+     * @param {Object} newSettings
+     * @param {{ silent?: boolean, preferencesOnly?: boolean }} [options]
+     *        - silent=true 时不弹任何提示，由调用方给出更贴切的文案
+     *          （例如「忽略待处理项」不该弹「设置已更新」）。
+     *        - preferencesOnly=true 表示这次只改界面偏好：服务端会跳过
+     *          「清空节点缓存」和「发 TG 设置更新通知」这两个副作用。
+     *          仅当本次载荷确实不影响节点处理时才可传 true。
+     *          （请求头名字与 functions/modules/api-handler.js 里的读取一一对应）
+     * @returns {Promise<boolean>} 成功时为 true；失败时**抛出**（沿用既有约定，
+     *          调用方自行 catch，静默模式下尤其需要）
+     */
+    async function saveSettings(newSettings, options = {}) {
+        const { silent = false, preferencesOnly = false } = options;
         editorStore.setLoading(true);
         try {
-            const result = await api.post('/api/settings', newSettings);
+            const result = await api.post(
+                '/api/settings',
+                newSettings,
+                preferencesOnly ? { headers: { 'X-MiSub-Save-Scope': 'preferences' } } : {}
+            );
 
             if (!result.success) {
                 throw new Error(result.message || t('store.saveSettingsFailed'));
@@ -188,13 +220,16 @@ export const useDataStore = defineStore('data', () => {
 
             settingsStore.updateConfig(newSettings);
             syncCachedConfig(settingsStore.config);
-            showToast(t('store.settingsUpdated'), 'success');
+            if (!silent) showToast(t('store.settingsUpdated'), 'success');
+            return true;
         } catch (error) {
             console.error('Failed to save settings:', error);
-            showToast(
-                t('store.saveSettingsFailedWithMessage', { message: error.message }),
-                'error'
-            );
+            if (!silent) {
+                showToast(
+                    t('store.saveSettingsFailedWithMessage', { message: error.message }),
+                    'error'
+                );
+            }
             throw error;
         } finally {
             editorStore.setLoading(false);

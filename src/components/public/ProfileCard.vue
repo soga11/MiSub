@@ -1,6 +1,9 @@
 <script setup>
     import QRCodeOverlay from './QRCodeOverlay.vue';
     import BaseIcon from '../ui/BaseIcon.vue';
+    import { useI18n } from '../../i18n/index.js';
+
+    const { t } = useI18n();
 
     const props = defineProps({
         profile: {
@@ -55,13 +58,13 @@
             <!-- QR Toggle (Small Top Right) -->
             <button
                 @click.stop="emit('toggle-qr', profile)"
-                class="rounded-lg border border-gray-200 p-2 text-gray-400 transition-colors hover:bg-gray-50 hover:text-primary-600 dark:border-gray-700 dark:hover:bg-white/10 dark:hover:text-primary-400"
-                title="显示二维码"
+                class="rounded-lg border border-gray-200 p-2 text-gray-500 dark:text-gray-400 transition-colors hover:bg-gray-50 hover:text-primary-600 dark:border-gray-700 dark:hover:bg-white/10 dark:hover:text-primary-400"
+                :title="t('actions.showQrCode')"
                 :class="{
                     'bg-primary-50 text-primary-600 dark:bg-primary-500/10 dark:text-primary-400':
                         isQrExpanded,
                 }"
-                aria-label="显示二维码"
+                :aria-label="t('actions.showQrCode')"
             >
                 <BaseIcon :path="ICONS.qr" className="w-5 h-5" />
             </button>
@@ -70,7 +73,7 @@
         <!-- Body: Description -->
         <div class="flex-1 mb-6">
             <p class="text-gray-500 dark:text-gray-400 text-sm leading-relaxed line-clamp-3">
-                {{ profile.description || '暂无简介' }}
+                {{ profile.description || t('public.noDescription') }}
             </p>
         </div>
 
@@ -82,18 +85,18 @@
             <button
                 @click="emit('quick-import', profile)"
                 class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
-                aria-label="一键导入订阅"
+                :aria-label="t('public.quickImportSubscription')"
             >
                 <BaseIcon :path="ICONS.import" className="w-4 h-4" />
-                一键导入
+                {{ t('public.quickImport') }}
             </button>
 
             <!-- Secondary Actions -->
             <button
                 @click="emit('preview', profile)"
                 class="rounded-lg border border-gray-200 p-2.5 text-gray-500 transition-colors hover:bg-gray-50 hover:text-primary-600 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-primary-400"
-                title="预览节点"
-                aria-label="预览节点"
+                :title="t('public.previewNodes')"
+                :aria-label="t('public.previewNodes')"
             >
                 <BaseIcon :path="ICONS.preview" className="w-5 h-5" />
             </button>
@@ -101,8 +104,8 @@
             <button
                 @click="emit('copy-link', profile)"
                 class="rounded-lg border border-gray-200 p-2.5 text-gray-500 transition-colors hover:bg-gray-50 hover:text-primary-600 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-primary-400"
-                title="复制链接"
-                aria-label="复制订阅链接"
+                :title="t('actions.copyLink')"
+                :aria-label="t('public.copySubscriptionLink')"
             >
                 <BaseIcon :path="ICONS.link" className="w-5 h-5" />
             </button>

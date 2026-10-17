@@ -161,7 +161,7 @@
                         v-model="settings.BotToken"
                         type="text"
                         placeholder="123456:ABC-DEF..."
-                        class="block w-full px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 misub-radius-lg shadow-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:text-white transition-colors"
+                        class="block w-full px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 misub-radius-lg shadow-xs focus-visible:ring-1 focus-visible:ring-blue-500 focus:border-blue-500 sm:text-sm dark:text-white transition-colors"
                     />
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         {{ t('settings.telegramBotTokenHint') }}
@@ -175,7 +175,7 @@
                         v-model="settings.ChatID"
                         type="text"
                         placeholder="123456789"
-                        class="block w-full px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 misub-radius-lg shadow-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:text-white transition-colors"
+                        class="block w-full px-3 py-2 bg-gray-50 dark:bg-gray-900/50 border border-gray-300 dark:border-gray-600 misub-radius-lg shadow-xs focus-visible:ring-1 focus-visible:ring-blue-500 focus:border-blue-500 sm:text-sm dark:text-white transition-colors"
                     />
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         {{ t('settings.telegramChatIdHint') }}
@@ -264,7 +264,7 @@
                             v-model="telegramPushConfig.bot_token"
                             type="text"
                             placeholder="123456:ABC-DEF..."
-                            class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:text-white"
+                            class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus-visible:outline-hidden focus-visible:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:text-white"
                         />
                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             {{ t('settings.telegramPushTokenHint') }}
@@ -279,7 +279,8 @@
                             v-model="telegramPushConfig.webhook_secret"
                             type="text"
                             placeholder="random_secret-token"
-                            class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:text-white"
+                            class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus-visible:outline-hidden focus-visible:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:text-white"
+                            :aria-label="t('settings.telegramWebhookSecret')"
                         />
                         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             {{ t('settings.telegramWebhookSecretHint') }}
@@ -301,7 +302,7 @@
                         v-model="allowedUsersStr"
                         rows="2"
                         placeholder="123456789, 987654321"
-                        class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus:outline-hidden focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:text-white"
+                        class="mt-1 block w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md shadow-xs focus-visible:outline-hidden focus-visible:ring-indigo-500 focus:border-indigo-500 sm:text-sm dark:text-white"
                     />
                     <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         {{ t('settings.telegramAllowedUsersHint') }}
@@ -344,7 +345,7 @@
                         />
                         <button
                             type="button"
-                            class="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-md bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-hidden"
+                            class="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-md bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 focus-visible:outline-hidden"
                             @click="copyText(webhookUrl, 'webhook')"
                         >
                             {{
@@ -369,10 +370,11 @@
                             type="text"
                             readonly
                             class="flex-1 block w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-l-md sm:text-sm dark:text-white font-mono text-xs"
+                            :aria-label="t('settings.telegramPublicAccess')"
                         />
                         <button
                             type="button"
-                            class="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-md bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-hidden"
+                            class="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-md bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 focus-visible:outline-hidden"
                             @click="copyText(setWebhookUrl, 'setWebhook')"
                         >
                             {{

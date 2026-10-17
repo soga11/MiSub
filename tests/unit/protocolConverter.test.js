@@ -187,6 +187,27 @@ describe('protocolConverter', () => {
                 expect(result).toContain('pbk=test-public-key'); // 标准参数名为 pbk
                 expect(result).toContain('sid=abc123');
             });
+
+            it('应正确处理带有 support-x25519mlkem768 的 Reality 配置', () => {
+                const proxy = {
+                    name: 'VLESS Reality MLKEM',
+                    type: 'vless',
+                    server: 'reality.example.com',
+                    port: 443,
+                    uuid: 'reality-uuid',
+                    network: 'tcp',
+                    'reality-opts': {
+                        'public-key': 'test-public-key',
+                        'short-id': 'abc123',
+                        'support-x25519mlkem768': true,
+                    },
+                };
+
+                const result = convertClashProxyToUrl(proxy);
+                expect(result).toBeTruthy();
+                expect(result).toContain('security=reality');
+                expect(result).toContain('support-x25519mlkem768=true');
+            });
         });
 
         describe('Hysteria2', () => {

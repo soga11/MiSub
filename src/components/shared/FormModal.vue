@@ -220,10 +220,10 @@
                                 v-if="closable"
                                 type="button"
                                 :disabled="disabled || loading"
-                                class="rounded-[var(--misub-radius-md)] bg-transparent text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/[0.055] focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed p-2 transition-colors duration-150"
+                                class="rounded-[var(--misub-radius-md)] bg-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/[0.055] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed p-2 transition-colors duration-150"
                                 @click="handleClose"
                             >
-                                <span class="sr-only">关闭</span>
+                                <span class="sr-only">{{ t('common.close') }}</span>
                                 <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
                                     <path
                                         fill-rule="evenodd"
@@ -254,7 +254,7 @@
                                     type="button"
                                     :disabled="disabled || loading"
                                     :class="cancelButtonClass"
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-white/10 text-sm font-medium rounded-[var(--misub-radius-md)] text-gray-700 dark:text-gray-300 bg-white dark:bg-white/[0.04] hover:bg-gray-50 dark:hover:bg-white/[0.055] focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-white/10 text-sm font-medium rounded-[var(--misub-radius-md)] text-gray-700 dark:text-gray-300 bg-white dark:bg-white/[0.04] hover:bg-gray-50 dark:hover:bg-white/[0.055] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
                                     @click="handleCancel"
                                 >
                                     {{ resolvedCancelText }}
@@ -267,7 +267,7 @@
                                         confirmButtonClass,
                                         { 'opacity-50 cursor-not-allowed': confirmDisabled },
                                     ]"
-                                    class="inline-flex items-center px-4 py-2 border border-primary-500/70 text-sm font-medium rounded-[var(--misub-radius-md)] text-white bg-primary-600 hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
+                                    class="inline-flex items-center px-4 py-2 border border-primary-500/70 text-sm font-medium rounded-[var(--misub-radius-md)] text-white bg-primary-600 hover:bg-primary-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
                                     @click="handleConfirm"
                                 >
                                     <!-- 加载图标 -->

@@ -1,4 +1,7 @@
 <script setup>
+    import { useI18n } from '../../../i18n/index.js';
+
+    const { t } = useI18n();
     /**
      * 文件上传导入：拖拽 / 点击选择本地文件，读取文本后走后端 /api/parse_subscription。
      * 纯 UI 组件，解析与入库由父组件处理。
@@ -86,6 +89,7 @@
                 class="hidden"
                 :accept="acceptAttr"
                 @change="onInputChange"
+                aria-hidden="true"
             />
             <div class="flex flex-col items-center gap-2">
                 <svg
@@ -103,10 +107,10 @@
                     />
                 </svg>
                 <p class="text-sm font-medium text-gray-700 dark:text-gray-200">
-                    点击选择文件，或将文件拖拽到此处
+                    {{ t('fileImport.dropHint') }}
                 </p>
                 <p class="text-xs text-gray-500 dark:text-gray-400">
-                    支持 .txt / .yaml / .yml / .json / .conf，可多选；自动识别其中的节点
+                    {{ t('fileImport.supportedTypes') }}
                 </p>
             </div>
         </div>
@@ -115,14 +119,29 @@
             class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 misub-radius-md p-3"
         >
             <h4 class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-                自动识别的文件内容：
+                {{ t('fileImport.detectedHeading') }}
             </h4>
             <ul class="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                <li>• <strong>纯文本节点</strong>：每行一个 ss:// vmess:// vless:// trojan:// 等链接</li>
-                <li>• <strong>Base64 订阅</strong>：v2rayN / Shadowrocket 等导出的 .txt</li>
-                <li>• <strong>Clash / Mihomo 配置</strong>：YAML 中的 proxies 列表</li>
-                <li>• <strong>Surge / Loon / QuantumultX</strong>：代理段配置</li>
-                <li>• <strong>JSON</strong>：Clash Meta 配置或节点数组</li>
+                <li>
+                    • <strong>{{ t('fileImport.fmtPlainText') }}</strong
+                    >：{{ t('fileImport.fmtPlainTextDesc') }}
+                </li>
+                <li>
+                    • <strong>{{ t('fileImport.fmtBase64') }}</strong
+                    >：{{ t('fileImport.fmtBase64Desc') }}
+                </li>
+                <li>
+                    • <strong>{{ t('fileImport.fmtClash') }}</strong
+                    >：{{ t('fileImport.fmtClashDesc') }}
+                </li>
+                <li>
+                    • <strong>{{ t('fileImport.fmtSurge') }}</strong
+                    >：{{ t('fileImport.fmtSurgeDesc') }}
+                </li>
+                <li>
+                    • <strong>{{ t('fileImport.fmtJson') }}</strong
+                    >：{{ t('fileImport.fmtJsonDesc') }}
+                </li>
             </ul>
         </div>
 
@@ -139,7 +158,11 @@
                     stroke="currentColor"
                     stroke-width="4"
                 ></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
             </svg>
             <span>{{ statusText }}</span>
         </div>

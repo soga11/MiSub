@@ -39,8 +39,6 @@
         'update:itemsPerPage', // Added
         'set-group-filter', // Added
         'ping',
-        'move-to-top',
-        'duplicate',
     ]);
 
     const draggableModel = computed({
@@ -102,9 +100,7 @@
                                 @delete="emit('delete', node.id)"
                                 @filter-group="emit('set-group-filter', $event)"
                                 @ping="emit('ping', node.id)"
-                                @move-to-top="emit('move-to-top', node.id)"
-                                @duplicate="emit('duplicate', node.id)"
-                                />
+                            />
                         </div>
                     </template>
                 </draggable>
@@ -131,9 +127,7 @@
                                 @delete="emit('delete', node.id)"
                                 @filter-group="emit('set-group-filter', $event)"
                                 @ping="emit('ping', node.id)"
-                                @move-to-top="emit('move-to-top', node.id)"
-                                @duplicate="emit('duplicate', node.id)"
-                                />
+                            />
                         </div>
                     </template>
                 </draggable>
@@ -168,9 +162,7 @@
                         @delete="emit('delete', node.id)"
                         @filter-group="emit('set-group-filter', $event)"
                         @ping="emit('ping', node.id)"
-                        @move-to-top="emit('move-to-top', node.id)"
-                        @duplicate="emit('duplicate', node.id)"
-                        />
+                    />
                 </div>
             </div>
             <div v-else class="space-y-3">
@@ -178,11 +170,7 @@
                     v-for="(node, index) in paginatedNodes"
                     :key="node.id"
                     :node="node"
-                    :index="
-                        itemsPerPage === -1
-                            ? index + 1
-                            : (displayPage - 1) * itemsPerPage + index + 1
-                    "
+                    :index="paginatedNodes.indexOf(node) + 1"
                     class="list-item-animation"
                     :style="{ '--delay-index': Math.min(index, 20) }"
                     :is-selection-mode="isSelectionMode"
@@ -194,9 +182,7 @@
                     @delete="emit('delete', node.id)"
                     @filter-group="emit('set-group-filter', $event)"
                     @ping="emit('ping', node.id)"
-                    @move-to-top="emit('move-to-top', node.id)"
-                    @duplicate="emit('duplicate', node.id)"
-                    />
+                />
             </div>
         </div>
 

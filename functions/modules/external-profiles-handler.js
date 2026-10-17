@@ -12,7 +12,6 @@ import {
 } from './external-api-utils.js';
 import { isManualNode, isRemoteSubscription, toExternalProfile } from './external-api-mappers.js';
 import { inspectRemoteSubscription } from './external-subscriptions-handler.js';
-import { resolveProfileManualNodeIds } from './utils/profile-node-selection.js';
 
 function nowIso() {
     return new Date().toISOString();
@@ -91,7 +90,7 @@ async function refreshProfileSubscriptions(storageAdapter, env, profile) {
     const remoteSubscriptions = (Array.isArray(profile.subscriptions) ? profile.subscriptions : [])
         .map((id) => byId.get(id))
         .filter((item) => item && isRemoteSubscription(item));
-    const manualNodes = resolveProfileManualNodeIds(profile, allSubscriptions)
+    const manualNodes = (Array.isArray(profile.manualNodes) ? profile.manualNodes : [])
         .map((id) => byId.get(id))
         .filter((item) => item && isManualNode(item));
 
@@ -205,7 +204,6 @@ export async function handleExternalProfilesRequest(
             customId: String(payload.customId || '').trim(),
             subscriptions: subscriptionIds,
             manualNodes: manualNodeIds,
-            autoIncludeManualNodes: payload.autoIncludeManualNodes === true,
             target: String(payload.target || 'clash').trim() || 'clash',
             sortIndex: Number.isFinite(Number(payload.sortIndex))
                 ? Number(payload.sortIndex)
@@ -253,9 +251,6 @@ export async function handleExternalProfilesRequest(
                 : {}),
             ...(subscriptionIds !== undefined ? { subscriptions: subscriptionIds } : {}),
             ...(manualNodeIds !== undefined ? { manualNodes: manualNodeIds } : {}),
-            ...(payload.autoIncludeManualNodes !== undefined
-                ? { autoIncludeManualNodes: payload.autoIncludeManualNodes === true }
-                : {}),
             updatedAt: nowIso(),
         };
         if (!String(updated.name || '').trim())

@@ -477,7 +477,28 @@ const ACL4SSR_BASE = `https://raw.githubusercontent.com/ACL4SSR/ACL4SSR/${PINNED
 const SING_GEOSITE_BASE = `https://raw.githubusercontent.com/SagerNet/sing-geosite/${PINNED_RULE_REVISIONS.SING_GEOSITE}`;
 const SING_GEOIP_BASE = `https://raw.githubusercontent.com/SagerNet/sing-geoip/${PINNED_RULE_REVISIONS.SING_GEOIP}`;
 
-export function pinRemoteRuleUrl(sourceUrl) {
+/**
+ * 将 raw.githubusercontent.com 链接重写为 jsDelivr CDN 镜像。
+ *
+ * 背景：raw.githubusercontent.com 在中国大陆长期无法直连，导致 Clash/mihomo
+ * 客户端拉取 RULE-SET 时静默失败（路由规则缺失、广告拦截失效、分流错乱），
+ * 而大部分用户并不会注意到是规则源下载失败。jsDelivr 的 gh 通道在国内可直连，
+ * 且与 GitHub 内容保持同步（存在少量缓存延迟，对规则集无影响）。
+ *
+ * 重写形式：
+ *   https://raw.githubusercontent.com/OWNER/REPO/REF/PATH
+ *   -> https://cdn.jsdelivr.net/gh/OWNER/REPO@REF/PATH
+ *
+ * 同时保留原有的「锁定版本」行为：若目标仓库在 PINNED_RULE_REVISIONS 中有固定
+ * 修订号，则用固定修订号替换原始分支/标签，避免上游改动导致规则漂移。
+ *
+ * @param {string} sourceUrl 原始规则源地址
+ * @param {Object}  [options]
+ * @param {boolean} [options.mirror=true] 是否启用 CDN 镜像重写
+ * @returns {string} 重写后的地址（不满足条件时原样返回）
+ */
+export function pinRemoteRuleUrl(sourceUrl, options = {}) {
+    const { mirror = true } = options;
     const raw = String(sourceUrl || '').trim();
     if (!/^https?:\/\//i.test(raw)) return sourceUrl;
 
@@ -494,10 +515,18 @@ export function pinRemoteRuleUrl(sourceUrl) {
             'blackmatrix7/ios_rule_script': PINNED_RULE_REVISIONS.BLACKMATRIX,
         };
         const revision = revisions[key];
-        if (!revision) return raw;
-        parts[2] = revision;
-        url.pathname = `/${parts.join('/')}`;
-        return url.toString();
+        if (revision) {
+            parts[2] = revision;
+        }
+
+        const [owner, repo, ref, ...rest] = parts;
+        if (!owner || !repo || !ref || rest.length === 0) return raw;
+
+        if (mirror) {
+            return `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${ref}/${rest.join('/')}`;
+        }
+
+        return `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${rest.join('/')}`;
     } catch {
         return raw;
     }

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { createDisguiseResponse, renderDisguisePage } from '../../functions/modules/disguise-page.js';
+import {
+    createDisguiseResponse,
+    renderDisguisePage,
+} from '../../functions/modules/disguise-page.js';
 
 /**
  * 伪装页加固测试：
@@ -46,7 +49,11 @@ describe('createDisguiseResponse', () => {
     });
 
     it('omits the home link when no off-site target is available', async () => {
-        const res = renderDisguisePage({ enabled: true, pageType: 'redirect', redirectUrl: '/local' });
+        const res = renderDisguisePage({
+            enabled: true,
+            pageType: 'redirect',
+            redirectUrl: '/local',
+        });
         const html = await res.text();
         expect(html).not.toContain('href="/"');
         // 仅样式表里保留 .home-link 类定义，不应渲染出实际的链接元素

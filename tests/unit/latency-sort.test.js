@@ -41,7 +41,9 @@ describe('latency sorting', () => {
             // d 未测试
         };
         expect(sortByLatency(nodes, results).map((n) => n.id)[0]).toBe('b');
-        const tail = sortByLatency(nodes, results).map((n) => n.id).slice(1);
+        const tail = sortByLatency(nodes, results)
+            .map((n) => n.id)
+            .slice(1);
         expect(tail.sort()).toEqual(['a', 'c', 'd']);
     });
 

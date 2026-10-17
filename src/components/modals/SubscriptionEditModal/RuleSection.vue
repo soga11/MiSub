@@ -89,35 +89,42 @@
     <div class="border border-gray-200 dark:border-gray-700 misub-radius-md overflow-hidden">
         <!-- 折叠头部 -->
         <div
-            @click="emit('toggle-expand')"
-            class="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/50 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
+            class="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors"
         >
-            <div class="flex items-center gap-2">
-                <svg
-                    class="w-4 h-4 text-gray-500 transition-transform duration-200"
-                    :class="{ 'rotate-90': isRuleExpanded }"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                >
-                    <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M9 5l7 7-7 7"
-                    />
-                </svg>
-                <label
-                    class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
-                    >{{ t('subscriptions.includeExclude') }}</label
-                >
-                <span
-                    v-if="selectedRules.length > 0"
-                    class="px-1.5 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200"
-                >
-                    {{ selectedRules.length }}
-                </span>
-            </div>
+            <button
+                type="button"
+                @click="emit('toggle-expand')"
+                :aria-expanded="isRuleExpanded"
+                aria-controls="sub-edit-rule-content"
+                class="flex flex-1 items-center gap-2 text-left cursor-pointer"
+            >
+                <div class="flex items-center gap-2">
+                    <svg
+                        class="w-4 h-4 text-gray-500 transition-transform duration-200"
+                        :class="{ 'rotate-90': isRuleExpanded }"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M9 5l7 7-7 7"
+                        />
+                    </svg>
+                    <span
+                        class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+                        >{{ t('subscriptions.includeExclude') }}</span
+                    >
+                    <span
+                        v-if="selectedRules.length > 0"
+                        class="px-1.5 py-0.5 text-xs font-medium rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-200"
+                    >
+                        {{ selectedRules.length }}
+                    </span>
+                </div>
+            </button>
             <div class="flex items-center gap-2" @click.stop>
                 <button
                     v-if="!isAdvancedMode"
@@ -140,6 +147,7 @@
         <Transition name="collapse">
             <div
                 v-show="isRuleExpanded"
+                id="sub-edit-rule-content"
                 class="px-4 py-3 border-t border-gray-200 dark:border-gray-700"
             >
                 <!-- 可视化模式 -->
@@ -148,6 +156,7 @@
                     <div class="flex gap-2">
                         <button
                             @click="ruleModeModel = 'exclude'"
+                            :aria-pressed="ruleModeModel === 'exclude'"
                             :class="[
                                 'flex-1 sm:flex-none px-3 py-1.5 text-xs sm:text-sm font-medium misub-radius-md transition-all !min-h-0 !min-w-0',
                                 ruleModeModel === 'exclude'
@@ -159,6 +168,7 @@
                         </button>
                         <button
                             @click="ruleModeModel = 'keep'"
+                            :aria-pressed="ruleModeModel === 'keep'"
                             :class="[
                                 'flex-1 sm:flex-none px-3 py-1.5 text-xs sm:text-sm font-medium misub-radius-md transition-all !min-h-0 !min-w-0',
                                 ruleModeModel === 'keep'
@@ -180,6 +190,7 @@
                                 v-for="tag in presetRegions"
                                 :key="tag.pattern"
                                 @click="toggleTag(tag, 'region')"
+                                :aria-pressed="isSelected(tag.pattern)"
                                 :class="[
                                     'px-2.5 py-1 text-xs sm:text-sm font-medium misub-radius-md transition-all !min-h-0 !min-w-0',
                                     isSelected(tag.pattern)
@@ -202,6 +213,7 @@
                                 v-for="tag in presetProtocols"
                                 :key="tag.pattern"
                                 @click="toggleTag(tag, 'protocol')"
+                                :aria-pressed="isSelected(tag.pattern)"
                                 :class="[
                                     'px-2.5 py-1 text-xs sm:text-sm font-medium misub-radius-md transition-all !min-h-0 !min-w-0',
                                     isSelected(tag.pattern)
@@ -224,6 +236,7 @@
                                 v-for="tag in presetKeywords"
                                 :key="tag.pattern"
                                 @click="toggleTag(tag, 'keyword')"
+                                :aria-pressed="isSelected(tag.pattern)"
                                 :class="[
                                     'px-2.5 py-1 text-xs sm:text-sm font-medium misub-radius-md transition-all !min-h-0 !min-w-0',
                                     isSelected(tag.pattern)
@@ -247,7 +260,8 @@
                                 v-model="customKeywordModel"
                                 @keyup.enter="addCustomKeyword"
                                 :placeholder="t('subscriptions.keywordPlaceholder')"
-                                class="w-full sm:flex-1 min-w-0 px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md focus:outline-hidden focus:ring-1 focus:ring-indigo-500 dark:text-white"
+                                class="w-full sm:flex-1 min-w-0 px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 misub-radius-md focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-indigo-500 dark:text-white"
+                                :aria-label="t('subscriptions.keywordPlaceholder')"
                             />
                             <button
                                 @click="addCustomKeyword"
@@ -298,6 +312,7 @@
                                 <button
                                     @click="removeRule(index)"
                                     class="hover:text-red-500 transition-colors !min-h-0 !min-w-0"
+                                    :aria-label="t('operators.removeRule')"
                                 >
                                     <svg
                                         class="w-3.5 h-3.5"
@@ -337,18 +352,24 @@
                     </div>
                     <textarea
                         id="sub-edit-exclude"
+                        :aria-invalid="excludeRuleState.errors.length > 0 ? 'true' : 'false'"
+                        :aria-describedby="
+                            excludeRuleState.errors.length ? 'sub-edit-exclude-error' : undefined
+                        "
                         v-model="editingSubscription.exclude"
-                        placeholder="[排除模式(默认)]&#10;proto:vless,trojan&#10;(过期|官网)&#10;---&#10;[包含模式(只保留匹配项)]&#10;keep:(香港|HK)&#10;keep:proto:ss"
+                        :placeholder="t('subscriptions.excludePlaceholder')"
                         rows="8"
                         :class="[
                             'w-full px-3 py-2 misub-radius-md sm:text-sm font-mono dark:text-white leading-6 resize-none bg-white dark:bg-gray-800',
                             excludeRuleState.errors.length
-                                ? 'border border-red-400 focus:ring-1 focus:ring-red-500 focus:outline-hidden'
-                                : 'border border-gray-300 dark:border-gray-600 focus:ring-1 focus:ring-indigo-500 focus:outline-hidden',
+                                ? 'border border-red-400 focus-visible:ring-1 focus-visible:ring-red-500 focus-visible:outline-hidden'
+                                : 'border border-gray-300 dark:border-gray-600 focus-visible:ring-1 focus-visible:ring-indigo-500 focus-visible:outline-hidden',
                         ]"
                     ></textarea>
                     <div
                         v-if="excludeRuleState.errors.length"
+                        id="sub-edit-exclude-error"
+                        role="alert"
                         class="mt-2 text-xs text-red-600 dark:text-red-400"
                     >
                         {{

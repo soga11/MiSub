@@ -4,7 +4,10 @@
     import NodeActions from './ManualNodePanel/NodeActions.vue';
     import NodeTable from './ManualNodePanel/NodeTable.vue';
     import { useManualNodeSearchPagination } from '@/composables/manual-nodes/useManualNodeSearchPagination.js';
-    import { normalizeManualNodeGroupName } from '@/composables/manual-nodes/groups.js';
+    import {
+        normalizeManualNodeGroupName,
+        DEFAULT_GROUP_KEY,
+    } from '@/composables/manual-nodes/groups.js';
 
     const props = defineProps({
         manualNodes: { type: Array, default: () => [] },
@@ -44,8 +47,6 @@
         'ping-all',
         'sort-by-latency',
         'manage-groups',
-        'move-to-top',
-        'duplicate',
     ]);
 
     const isSelectionMode = ref(false);
@@ -120,7 +121,7 @@
 
         if (activeGroup) {
             const normalizedActiveGroup =
-                activeGroup === '默认' ? '' : normalizeManualNodeGroupName(activeGroup);
+                activeGroup === DEFAULT_GROUP_KEY ? '' : normalizeManualNodeGroupName(activeGroup);
             nodes = nodes.filter(
                 (node) => normalizeManualNodeGroupName(node.group) === normalizedActiveGroup
             );
@@ -136,11 +137,6 @@
 
     const handleDelete = (id) => emit('delete', id);
     const handleEdit = (id) => emit('edit', id);
-    const handleDuplicate = (id) => emit('duplicate', id);
-    const handleMoveToTop = (id) => {
-        emit('move-to-top', id);
-        handlePageChange(1);
-    };
     const handleAdd = () => emit('add');
     const handleChangePage = (page) => handlePageChange(page);
     const handleSetViewMode = (mode) => emit('update:viewMode', mode);
@@ -247,8 +243,6 @@
             :pinging-nodes="pingingNodes"
             :compact-grid="compactGrid"
             @ping="emit('ping', $event)"
-            @move-to-top="handleMoveToTop"
-            @duplicate="handleDuplicate"
         />
     </div>
 </template>

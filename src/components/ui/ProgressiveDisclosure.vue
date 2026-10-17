@@ -1,5 +1,8 @@
 <script setup>
     import { ref, computed } from 'vue';
+    import { useI18n } from '../../i18n/index.js';
+
+    const { t } = useI18n();
 
     const props = defineProps({
         title: {
@@ -85,10 +88,11 @@
             <!-- 展开/收起图标 -->
             <button
                 v-if="collapsible"
-                class="ml-4 p-1 misub-radius-md hover:bg-gray-100 dark:hover:bg-gray-700 smooth-all"
+                class="ml-4 p-1 misub-radius-md hover:bg-gray-100 dark:hover:bg-gray-700 smooth-all touch-target"
+                :aria-label="t('common.toggleExpand')"
             >
                 <svg
-                    class="w-5 h-5 text-gray-400 smooth-transform"
+                    class="w-5 h-5 text-gray-500 dark:text-gray-400 smooth-transform"
                     :class="{ 'rotate-180': isExpanded }"
                     fill="none"
                     stroke="currentColor"

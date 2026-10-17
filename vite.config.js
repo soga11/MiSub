@@ -81,8 +81,19 @@ export default defineConfig({
     },
     // 路径解析
     resolve: {
-        alias: {
-            '@': '/src',
-        },
+        alias: [
+            { find: '@', replacement: '/src' },
+            {
+                // vuedraggable 的 package.json main 指向 dist/vuedraggable.umd.min.js，
+                // 该 UMD 构建把 Vue 完整版（含 runtime compiler）一并打包，并在运行时
+                // 调用 registerRuntimeCompiler()。此后任何运行时模板字符串都会走
+                // new Function("Vue", code) 编译，在启用严格 CSP（无 unsafe-eval）的
+                // 部署上被拦截，抛 EvalError 并以错误提示弹窗暴露给用户。
+                // 改指向 ESM 源码（仅 import { h } from 'vue'），不再打包编译器。
+                // 见 tests/unit/runtime-compiler-csp.test.js
+                find: /^vuedraggable$/,
+                replacement: 'vuedraggable/src/vuedraggable',
+            },
+        ],
     },
 });

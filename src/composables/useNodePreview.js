@@ -6,6 +6,7 @@
 import { ref, computed, watch } from 'vue';
 import { api, APIError } from '@/lib/http.js';
 import { t } from '@/i18n/index.js';
+import { isNetworkErrorMessage } from '@/utils/network-error.js';
 
 const isDev = import.meta.env.DEV;
 
@@ -151,10 +152,7 @@ export function useNodePreview(props) {
                 } catch (testErr) {
                     error.value = t('nodePreview.authFailed');
                 }
-            } else if (
-                err.message.includes('网络') ||
-                err.message.toLowerCase().includes('network')
-            ) {
+            } else if (isNetworkErrorMessage(err?.message)) {
                 error.value = t('nodePreview.networkFailed');
             } else {
                 error.value = err.message || t('nodePreview.loadFailed');

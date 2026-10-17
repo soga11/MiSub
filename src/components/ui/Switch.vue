@@ -37,7 +37,7 @@
             @change="toggle"
         />
         <div
-            class="w-11 h-6 bg-gray-200 dark:bg-slate-700 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-md after:shadow-black/10 peer-checked:after:translate-x-full peer-checked:bg-primary-600 dark:peer-checked:bg-primary-500 transition-all duration-300"
+            class="w-11 h-6 bg-gray-200 dark:bg-slate-700 peer-focus-visible:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-md after:shadow-black/10 peer-checked:after:translate-x-full peer-checked:bg-primary-600 dark:peer-checked:bg-primary-500 transition-all duration-300"
         ></div>
         <span v-if="label" class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
             {{ label }}

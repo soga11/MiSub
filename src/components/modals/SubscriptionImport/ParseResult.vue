@@ -1,4 +1,7 @@
 <script setup>
+    import { useI18n } from '../../../i18n/index.js';
+
+    const { t } = useI18n();
     const props = defineProps({
         isLoading: {
             type: Boolean,
@@ -27,7 +30,7 @@
             class="flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400"
         >
             <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-            <span>{{ parseStatus || '正在处理...' }}</span>
+            <span>{{ parseStatus || t('importNodes.processing') }}</span>
         </div>
 
         <!-- 成功信息 -->

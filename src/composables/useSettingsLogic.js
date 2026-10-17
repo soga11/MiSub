@@ -1,9 +1,10 @@
-import { ref, computed } from 'vue';
+import { ref, computed, onUnmounted, getCurrentInstance } from 'vue';
 import { useToastStore } from '../stores/toast.js';
 import { DEFAULT_SETTINGS } from '../constants/default-settings.js';
 import { fetchSettings, saveSettings, resetSettings } from '../lib/api.js';
 import { useBackupLogic } from './useBackupLogic.js';
 import { t, setLocale } from '../i18n/index.js';
+import { confirmAction } from './useConfirm.js';
 
 function normalizeExternalApiConfig(value) {
     const defaults = DEFAULT_SETTINGS.externalApi;
@@ -45,6 +46,19 @@ export function useSettingsLogic() {
     const isLoading = ref(false);
     const isSaving = ref(false);
     const showMigrationModal = ref(false);
+    const restartCountdown = ref(null);
+    let reloadTimer = null;
+
+    const clearReloadTimer = () => {
+        if (reloadTimer !== null) {
+            clearInterval(reloadTimer);
+            reloadTimer = null;
+        }
+    };
+
+    if (getCurrentInstance()) {
+        onUnmounted(clearReloadTimer);
+    }
 
     // 嵌套配置对象
     const disguiseConfig = ref({
@@ -147,7 +161,15 @@ export function useSettingsLogic() {
             const result = await saveSettings(settingsToSave);
             if (result.success) {
                 showToast(t('settings.savedReloading'), 'success');
-                setTimeout(() => window.location.reload(), 1500);
+                clearReloadTimer();
+                restartCountdown.value = 3;
+                reloadTimer = setInterval(() => {
+                    restartCountdown.value -= 1;
+                    if (restartCountdown.value <= 0) {
+                        clearReloadTimer();
+                        window.location.reload();
+                    }
+                }, 1000);
                 return true;
             } else {
                 throw new Error(result.error || t('settings.saveFailed'));
@@ -173,11 +195,19 @@ export function useSettingsLogic() {
      * 处理恢复出厂设置
      */
     const handleReset = async () => {
-        if (!confirm(t('settings.resetConfirm'))) {
+        const firstConfirmed = await confirmAction({
+            message: t('settings.resetConfirm'),
+            variant: 'danger',
+        });
+        if (!firstConfirmed) {
             return;
         }
 
-        if (!confirm(t('settings.resetConfirmAgain'))) {
+        const secondConfirmed = await confirmAction({
+            message: t('settings.resetConfirmAgain'),
+            variant: 'danger',
+        });
+        if (!secondConfirmed) {
             return;
         }
 
@@ -203,6 +233,7 @@ export function useSettingsLogic() {
         isLoading,
         isSaving,
         showMigrationModal,
+        restartCountdown,
         hasWhitespace,
         isStorageTypeValid,
         loadSettings,

@@ -185,7 +185,8 @@ CREATE INDEX IF NOT EXISTS idx_settings_updated_at ON settings(updated_at);`;
                         type="radio"
                         value="kv"
                         v-model="settings.storageType"
-                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                        class="h-4 w-4 text-indigo-600 focus-visible:ring-indigo-500 border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                        :aria-label="t('systemSettings.kvStorage')"
                     />
                     <span class="ml-3 text-sm dark:text-gray-300">{{
                         t('systemSettings.kvStorage')
@@ -196,7 +197,8 @@ CREATE INDEX IF NOT EXISTS idx_settings_updated_at ON settings(updated_at);`;
                         type="radio"
                         value="d1"
                         v-model="settings.storageType"
-                        class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                        class="h-4 w-4 text-indigo-600 focus-visible:ring-indigo-500 border-gray-300 dark:border-gray-600 dark:bg-gray-800"
+                        :aria-label="t('systemSettings.d1DatabaseRecommended')"
                     />
                     <span class="ml-3 text-sm dark:text-gray-300">{{
                         t('systemSettings.d1DatabaseRecommended')

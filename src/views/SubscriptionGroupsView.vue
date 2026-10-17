@@ -1,5 +1,6 @@
 <script setup>
-    import { ref, defineAsyncComponent, computed } from 'vue';
+    import { ref, defineAsyncComponent, computed, onMounted, watch } from 'vue';
+    import { useRoute, useRouter } from 'vue-router';
     import { extractNodeName } from '../lib/utils.js';
     import { useDataStore } from '../stores/useDataStore.js';
     import { useSubscriptions } from '../composables/useSubscriptions.js';
@@ -12,11 +13,18 @@
     import SubscriptionEditModal from '../components/modals/SubscriptionEditModal.vue';
     import { useToastStore } from '../stores/toast.js';
     import { useI18n } from '../i18n/index.js';
+    import { createAirportGroupId } from '../utils/airport-identity.js';
+    import {
+        resolveSubscriptionStatusFilter,
+        matchesSubscriptionStatus,
+    } from '../utils/dashboard-deeplink.js';
 
     const dataStore = useDataStore();
     const { showToast } = useToastStore();
     const { markDirty } = dataStore;
     const { t } = useI18n();
+    const route = useRoute();
+    const router = useRouter();
 
     // State
     // State
@@ -84,6 +92,82 @@
     const previewSubscriptionName = ref('');
     const previewSubscriptionUrl = ref('');
 
+    // 将当前显示组确认为一个机场身份，并统一显示组名；订阅源自身名称保持不变。
+    const handleRenameGroup = (ids, baseName, requestedGroupId) => {
+        const base = String(baseName || '').trim();
+        if (!base || !Array.isArray(ids) || ids.length === 0) return;
+        const groupId =
+            ids
+                .map(
+                    (id) =>
+                        subscriptions.value.find((sub) => sub.id === id)?.airportIdentity?.groupId
+                )
+                .find(Boolean) ||
+            requestedGroupId ||
+            createAirportGroupId();
+        const name = base;
+        let updated = 0;
+        ids.forEach((id) => {
+            const target = subscriptions.value.find((sub) => sub.id === id);
+            if (!target) return;
+            const identity = { groupId, name: base };
+            if (
+                target.airportIdentity?.groupId === groupId &&
+                target.airportIdentity?.name === base
+            )
+                return;
+            updateSubscription({ ...target, airportIdentity: identity });
+            updated++;
+        });
+        if (updated)
+            showToast(t('subscriptions.groupRenamed', { name: base, count: updated }), 'success');
+    };
+
+    // 应用识别到的机场名（来自订阅响应头 / 官网标题）
+    const handleApplyDetectedName = (subscriptionId, name) => {
+        const target = String(name || '').trim();
+        if (!target) return;
+        // useSubscriptions 的 updateSubscription 接收「完整订阅对象」而非 (id, patch)
+        const targetSub = subscriptions.value.find((s) => s.id === subscriptionId);
+        if (!targetSub) return;
+        updateSubscription({
+            ...targetSub,
+            airportIdentity: {
+                groupId: targetSub.airportIdentity?.groupId || createAirportGroupId(),
+                name: target,
+            },
+        });
+        showToast(t('subscriptions.nameApplied', { name: target }), 'success');
+    };
+
+    const handleAssignAirportGroup = (ids, identity) => {
+        const groupId = String(identity?.groupId || '').trim();
+        const name = String(identity?.name || '').trim();
+        if (!groupId || !name || !Array.isArray(ids)) return;
+        ids.forEach((id) => {
+            const target = subscriptions.value.find((sub) => sub.id === id);
+            if (target) updateSubscription({ ...target, airportIdentity: { groupId, name } });
+        });
+    };
+
+    const handleSplitAirportGroup = (ids, identity) => {
+        const groupId = String(identity?.groupId || '').trim();
+        const name = String(identity?.name || '').trim();
+        if (!groupId || !name || !Array.isArray(ids)) return;
+        ids.forEach((id) => {
+            const target = subscriptions.value.find((sub) => sub.id === id);
+            if (target) updateSubscription({ ...target, airportIdentity: { groupId, name } });
+        });
+    };
+
+    const handleResetAirportIdentity = (ids) => {
+        (ids || []).forEach((id) => {
+            const target = subscriptions.value.find((sub) => sub.id === id);
+            if (target) updateSubscription({ ...target, airportIdentity: null });
+        });
+        showToast(t('subscriptions.airportIdentityReset'), 'success');
+    };
+
     const handlePreviewSubscription = (subscriptionId) => {
         const subscription = subscriptions.value.find((s) => s.id === subscriptionId);
         if (subscription) {
@@ -113,19 +197,69 @@
             showQRCodeModal.value = true;
         }
     };
+
+    // --- Dashboard deep-link status filter (?status=error / expired / ...) ---
+    // The dashboard health cards link here with a status. Previously the query
+    // was dropped, so the user landed on an unfiltered list.
+    const activeStatusFilter = ref('');
+    const STATUS_FILTER_LABEL_KEYS = {
+        disabled: 'subscriptions.filterStatusDisabled',
+        error: 'subscriptions.filterStatusError',
+        expired: 'subscriptions.filterStatusExpired',
+        'low-traffic': 'subscriptions.filterStatusLowTraffic',
+        'zero-nodes': 'subscriptions.filterStatusZeroNodes',
+    };
+
+    const statusFilterLabel = computed(() => {
+        const key = STATUS_FILTER_LABEL_KEYS[activeStatusFilter.value];
+        return key ? t(key) : '';
+    });
+
+    // Subscriptions matching the active status filter, before search/pagination.
+    const statusFilteredSubscriptions = computed(() => {
+        if (!activeStatusFilter.value) return subscriptions.value;
+        return subscriptions.value.filter((sub) =>
+            matchesSubscriptionStatus(sub, activeStatusFilter.value)
+        );
+    });
+
+    function applyStatusFromQuery() {
+        activeStatusFilter.value = resolveSubscriptionStatusFilter(route.query?.status) || '';
+    }
+
+    const clearStatusFilter = () => {
+        activeStatusFilter.value = '';
+        if (route.query?.status) {
+            const nextQuery = { ...route.query };
+            delete nextQuery.status;
+            router.replace({ query: nextQuery });
+        }
+    };
+
+    onMounted(applyStatusFromQuery);
+    watch(() => route.query.status, applyStatusFromQuery);
+
+    // `subscriptions` is the prop the panel renders; when a status filter is
+    // active we narrow it so the list, the count and pagination all agree.
+    const visibleSubscriptions = computed(() =>
+        activeStatusFilter.value ? statusFilteredSubscriptions.value : subscriptions.value
+    );
 </script>
 
 <template>
     <div class="max-w-(--breakpoint-xl) mx-auto">
         <SubscriptionPanel
-            :subscriptions="subscriptions"
+            :subscriptions="visibleSubscriptions"
             :paginated-subscriptions="paginatedSubscriptions"
             :search-query="subscriptionSearchQuery"
             :filtered-count="filteredSubscriptions.length"
+            :status-filter="activeStatusFilter"
+            :status-filter-label="statusFilterLabel"
             :current-page="subsCurrentPage"
             :total-pages="subsTotalPages"
             :is-sorting="isSortingSubs"
             searchable
+            @clear-status-filter="clearStatusFilter"
             @add="handleAddSubscription"
             @delete="handleDeleteSubscriptionWithCleanup"
             @change-page="changeSubsPage"
@@ -140,6 +274,11 @@
             @import="openBulkImportModal"
             @qrcode="handleQRCode"
             @update-search="subscriptionSearchQuery = $event"
+            @applyDetectedName="handleApplyDetectedName"
+            @rename-group="handleRenameGroup"
+            @assign-airport-group="handleAssignAirportGroup"
+            @split-airport-group="handleSplitAirportGroup"
+            @reset-group="handleResetAirportIdentity"
         >
             <!-- Slot removed as user requested button move to dropdown -->
         </SubscriptionPanel>
@@ -162,7 +301,7 @@
                 </h3></template
             >
             <template #body
-                ><p class="text-sm text-gray-400">
+                ><p class="text-sm text-gray-500 dark:text-gray-400">
                     {{ t('subscriptions.deleteAllConfirmBody') }}
                 </p></template
             >
@@ -173,6 +312,7 @@
             :show="showBulkImportModal"
             @update:show="showBulkImportModal = $event"
             @import="(txt, tag) => handleBulkImport(txt, tag)"
+            @files-imported="(nodes, group) => addNodesFromBulk(nodes, group)"
         />
 
         <NodePreviewModal
