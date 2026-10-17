@@ -1,3 +1,6 @@
+import { pinRemoteRuleUrl } from './builtin-rules-provider.js';
+import { DNS_PROXY_GROUP } from './safe-dns.js';
+
 const MAIN_GROUP = '🚀 节点选择';
 const MANUAL_GROUP = '👋 手动选择';
 const AUTO_GROUP = '♻️ 自动选择';
@@ -39,7 +42,11 @@ const RULE_SETS = [
         format: 'binary',
         url: 'https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs',
     },
-];
+].map((ruleSet) => ({
+    ...ruleSet,
+    url: pinRemoteRuleUrl(ruleSet.url),
+    download_detour: DNS_PROXY_GROUP,
+}));
 
 function uniqueTags(outbounds) {
     const seen = new Set();
