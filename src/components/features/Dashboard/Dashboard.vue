@@ -149,6 +149,7 @@
         deduplicateNodes,
         reorderManualNodes,
         moveNodeToTop,
+        duplicateNode,
         activeGroupFilter,
         setGroupFilter,
         batchUpdateGroup,
@@ -529,6 +530,7 @@
                     @delete-all="showDeleteNodesModal = true"
                     @reorder="reorderManualNodes"
                     @move-to-top="moveNodeToTop"
+                    @duplicate="duplicateNode"
                     @set-group-filter="setGroupFilter"
                     @batch-update-group="(ids, group) => batchUpdateGroup(ids, group)"
                     @batch-delete-nodes="handleBatchDeleteRequest"

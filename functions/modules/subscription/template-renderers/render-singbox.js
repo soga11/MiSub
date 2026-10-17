@@ -69,8 +69,7 @@ export function buildOutbound(proxy) {
             server_port: serverPort,
             uuid: proxy.uuid || '',
             security: proxy.cipher || 'auto',
-            udp_relay_mode: proxy['udp-relay-mode'] || 'native',
-            congestion_control: proxy['congestion-control'] || 'cubic',
+            // sing-box VMess schema 无 udp_relay_mode / congestion_control，输出会导致解码失败
             alter_id: Number.isFinite(Number(proxy.alterId)) ? Number(proxy.alterId) : 0,
         };
 
@@ -164,9 +163,7 @@ export function buildOutbound(proxy) {
                     public_key: realityOpts['public-key'] || realityOpts.publicKey || '',
                     short_id: realityOpts['short-id'] || realityOpts.shortId || '',
                 };
-                if (realityOpts['spider-x'] || realityOpts.spiderX) {
-                    outbound.tls.reality.spider_x = realityOpts['spider-x'] || realityOpts.spiderX;
-                }
+                // spider_x 为 Xray 专有字段，官方 sing-box 内核会拒绝（unknown field），故不输出
             }
         }
         return outbound;

@@ -40,6 +40,7 @@
         'set-group-filter', // Added
         'ping',
         'move-to-top',
+        'duplicate',
     ]);
 
     const draggableModel = computed({
@@ -102,7 +103,8 @@
                                 @filter-group="emit('set-group-filter', $event)"
                                 @ping="emit('ping', node.id)"
                                 @move-to-top="emit('move-to-top', node.id)"
-                            />
+                                @duplicate="emit('duplicate', node.id)"
+                                />
                         </div>
                     </template>
                 </draggable>
@@ -130,7 +132,8 @@
                                 @filter-group="emit('set-group-filter', $event)"
                                 @ping="emit('ping', node.id)"
                                 @move-to-top="emit('move-to-top', node.id)"
-                            />
+                                @duplicate="emit('duplicate', node.id)"
+                                />
                         </div>
                     </template>
                 </draggable>
@@ -166,7 +169,8 @@
                         @filter-group="emit('set-group-filter', $event)"
                         @ping="emit('ping', node.id)"
                         @move-to-top="emit('move-to-top', node.id)"
-                    />
+                        @duplicate="emit('duplicate', node.id)"
+                        />
                 </div>
             </div>
             <div v-else class="space-y-3">
@@ -191,7 +195,8 @@
                     @filter-group="emit('set-group-filter', $event)"
                     @ping="emit('ping', node.id)"
                     @move-to-top="emit('move-to-top', node.id)"
-                />
+                    @duplicate="emit('duplicate', node.id)"
+                    />
             </div>
         </div>
 

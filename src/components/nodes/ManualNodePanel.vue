@@ -45,6 +45,7 @@
         'sort-by-latency',
         'manage-groups',
         'move-to-top',
+        'duplicate',
     ]);
 
     const isSelectionMode = ref(false);
@@ -135,6 +136,7 @@
 
     const handleDelete = (id) => emit('delete', id);
     const handleEdit = (id) => emit('edit', id);
+    const handleDuplicate = (id) => emit('duplicate', id);
     const handleMoveToTop = (id) => {
         emit('move-to-top', id);
         handlePageChange(1);
@@ -246,6 +248,7 @@
             :compact-grid="compactGrid"
             @ping="emit('ping', $event)"
             @move-to-top="handleMoveToTop"
+            @duplicate="handleDuplicate"
         />
     </div>
 </template>

@@ -15,6 +15,7 @@ import {
     normalizeManualNodeGroupName,
 } from './manual-nodes/groups.js';
 import { t } from '../i18n/index.js';
+import { generateNodeId } from '../utils/id.js';
 
 export function useManualNodes(markDirty) {
     const { showToast } = useToastStore();
@@ -326,6 +327,53 @@ export function useManualNodes(markDirty) {
         return true;
     }
 
+    /**
+     * 克隆节点：在原节点紧后方插入一份副本（序号自然顺延，例如 72 → 73）。
+     * 副本除 id / name 外与原节点完全一致（含分组、启用状态、URL）。
+     * @param {string} nodeId 被克隆的节点 id
+     * @returns {string|null} 新节点 id
+     */
+    function duplicateNode(nodeId) {
+        const items = allSubscriptions.value || [];
+        const index = items.findIndex((item) => item.id === nodeId && isManualNodeEntry(item));
+        if (index === -1) return null;
+
+        const source = items[index];
+        const escapeRe = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // 从 i18n 模板推出副本后缀（中文「 副本」/ 英文「 copy」），避免硬编码
+        const suffix = t('manualNodes.copySuffix', { name: '' });
+        const baseName = String(source.name || '').replace(
+            new RegExp(`${escapeRe(suffix)}\\s*\\d*$`),
+            ''
+        );
+
+        const firstCopyName = t('manualNodes.copySuffix', { name: baseName });
+        const usedNames = new Set(items.map((item) => item.name));
+        let copyName = firstCopyName;
+        let seq = 2;
+        while (usedNames.has(copyName)) {
+            copyName = t('manualNodes.copySuffixN', { name: baseName, n: seq++ });
+        }
+
+        const copy = { ...source, id: generateNodeId(), name: copyName };
+
+        // 插到原节点之后；若后面已排着副本，则插到最后一个副本之后，
+        // 保证连续克隆时序号单调：A → A 副本 → A 副本2 → …
+        let insertAt = index + 1;
+        const copyRe = new RegExp(`^${escapeRe(firstCopyName)}\\s*\\d*$`);
+        while (insertAt < items.length && copyRe.test(String(items[insertAt].name || ''))) {
+            insertAt++;
+        }
+
+        const next = [...items];
+        next.splice(insertAt, 0, copy);
+        dataStore.overwriteSubscriptions(next);
+
+        markDirty();
+        showToast(t('manualNodes.duplicated', { name: copyName }), 'success');
+        return copy.id;
+    }
+
     const manualNodeGroups = computed(() => {
         const customOrder = settingsStore.config.manualNodeGroupOrder || [];
         return collectManualNodeGroups(manualNodes.value, customOrder);
@@ -473,6 +521,7 @@ export function useManualNodes(markDirty) {
         applyDedupPlan,
         reorderManualNodes, // Added
         moveNodeToTop,
+        duplicateNode,
         renameGroup,
         deleteGroup,
         reorderGroups, // New: 调整分组顺序
