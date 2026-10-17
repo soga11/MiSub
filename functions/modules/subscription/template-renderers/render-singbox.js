@@ -56,6 +56,34 @@ export function buildOutbound(proxy) {
         };
     }
 
+    if (type === 'socks' || type === 'socks5') {
+        const outbound = {
+            tag,
+            type: 'socks',
+            server,
+            server_port: serverPort,
+            version: '5',
+        };
+        if (proxy.username) outbound.username = proxy.username;
+        if (proxy.password) outbound.password = proxy.password;
+        return outbound;
+    }
+
+    if (type === 'anytls') {
+        return {
+            tag,
+            type: 'anytls',
+            server,
+            server_port: serverPort,
+            password: proxy.password || '',
+            tls: {
+                enabled: true,
+                server_name: proxy.servername ?? proxy.sni ?? server,
+                insecure: proxy['skip-cert-verify'] === true || proxy.skipCertVerify === true,
+            },
+        };
+    }
+
     if (type === 'ss' || type === 'shadowsocks') {
         const outbound = {
             tag,
@@ -221,7 +249,12 @@ export function buildOutbound(proxy) {
         const congestionControl =
             proxy['congestion-control'] || proxy['congestion-controller'] || proxy.congestion;
         if (congestionControl) outbound.congestion_control = congestionControl;
-        // sing-box TUIC schema has no udp_relay_mode field.
+        // sing-box TUIC 支持 udp_relay_mode（仅 native / quic 两个合法值），
+        // 其他取值一律丢弃，避免解码失败
+        const udpRelayMode = proxy['udp-relay-mode'] || proxy.udpRelayMode;
+        if (udpRelayMode === 'native' || udpRelayMode === 'quic') {
+            outbound.udp_relay_mode = udpRelayMode;
+        }
         if (proxy['udp-over-stream'] !== undefined)
             outbound.udp_over_stream = Boolean(proxy['udp-over-stream']);
         if (proxy['zero-rtt-handshake'] !== undefined || proxy['reduce-rtt'] !== undefined) {

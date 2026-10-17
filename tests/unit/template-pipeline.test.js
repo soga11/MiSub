@@ -332,7 +332,9 @@ MATCH,节点选择
         expect(vmess?.udp_relay_mode).toBeUndefined();
     });
 
-    it('omits Clash-only TUIC udp_relay_mode from sing-box template output', () => {
+    // 官方 sing-box 的 TUIC outbound 确实有 udp_relay_mode 字段（取值 native/quic），
+    // 用官方 1.14.3 内核校验可证：写入该字段 rc=0，写入任意未知字段则报 unknown field。
+    it('keeps TUIC udp_relay_mode in sing-box template output', () => {
         const rendered = renderSingboxFromIniTemplate(
             '[Proxy Group]\\nNode = select, TUICNode\\n[Rule]\\nMATCH,Node',
             {
@@ -352,7 +354,7 @@ MATCH,节点选择
         );
         const parsed = JSON.parse(rendered);
         const tuic = parsed.outbounds.find((outbound) => outbound.tag === 'TUICNode');
-        expect(tuic?.udp_relay_mode).toBeUndefined();
+        expect(tuic?.udp_relay_mode).toBe('native');
     });
     it('should render sing-box json from ACL4SSR custom template', () => {
         const builtinTemplate = getBuiltinTemplate('clash_acl4ssr_full');
