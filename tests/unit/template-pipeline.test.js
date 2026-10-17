@@ -6,6 +6,8 @@ import {
     renderLoonFromIniTemplate,
     renderQuanxFromIniTemplate,
     renderSingboxFromIniTemplate,
+    renderSingboxFromJsonTemplate,
+    isSingboxJsonTemplate,
     renderSurgeFromIniTemplate,
 } from '../../functions/modules/subscription/template-pipeline.js';
 import { getBuiltinTemplate } from '../../functions/modules/subscription/builtin-template-registry.js';
@@ -43,15 +45,21 @@ MATCH,节点选择
 
         expect(parsed.dns.servers).toEqual(
             expect.arrayContaining([
-                expect.objectContaining({ type: 'udp', server: '223.5.5.5', server_port: 53 }),
+                expect.objectContaining({ tag: 'local', type: 'https', server: '223.5.5.5' }),
+                expect.objectContaining({
+                    tag: 'remote',
+                    type: 'https',
+                    server: '8.8.8.8',
+                    detour: '🚀 节点选择',
+                }),
+                expect.objectContaining({ tag: 'fakeip', type: 'fakeip' }),
             ])
         );
         expect(parsed.dns.rules).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({
-                    rule_set: ['geosite-cn'],
-                    action: 'route',
-                    server: 'dns-cn-1',
+                    rule_set: 'geosite-cn',
+                    server: 'local',
                 }),
             ])
         );
@@ -60,6 +68,7 @@ MATCH,节点选择
                 expect.objectContaining({ tag: 'geosite-cn', type: 'remote', format: 'binary' }),
             ])
         );
+        expect(parsed.inbounds[0].stack).toBeUndefined();
         expect(parsed.dns.servers.every((server) => !Object.hasOwn(server, 'address'))).toBe(true);
         expect(trojan).toBeDefined();
     });
@@ -366,11 +375,17 @@ MATCH,节点选择
         ).toBe(true);
         expect(Array.isArray(parsed.route.rule_set)).toBe(true);
         expect(parsed.route.rule_set.length).toBeGreaterThan(0);
-        const aclRuleSets = parsed.route.rule_set.filter((ruleSet) =>
-            String(ruleSet.url).endsWith('.list')
+        expect(parsed.route.rule_set).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    tag: 'geosite-category-ads-all',
+                    type: 'remote',
+                    format: 'binary',
+                }),
+                expect.objectContaining({ tag: 'geosite-cn', type: 'remote', format: 'binary' }),
+                expect.objectContaining({ tag: 'ext-cn-domain', type: 'remote', format: 'binary' }),
+            ])
         );
-        expect(aclRuleSets.length).toBeGreaterThan(0);
-        expect(aclRuleSets.every((ruleSet) => ruleSet.format === 'source')).toBe(true);
     });
 
     it('should render surge config sections from ACL4SSR custom template', () => {
@@ -935,5 +950,151 @@ custom_proxy_group=🤖 AI 服务\`select\`[]🚀 节点选择\`[]DIRECT
             path: './ruleset/ai_0.list',
         });
         expect(parsed.rules).toContain('RULE-SET,ai_0,🤖 AI 服务');
+    });
+
+    it('detects sing-box JSON templates', () => {
+        expect(isSingboxJsonTemplate('{"outbounds":[{"tag":"DIRECT","type":"direct"}]}')).toBe(
+            true
+        );
+        expect(isSingboxJsonTemplate('not json')).toBe(false);
+        expect(isSingboxJsonTemplate('{"rules":["MATCH,DIRECT"]}')).toBe(false);
+        expect(isSingboxJsonTemplate('[1,2,3]')).toBe(false);
+    });
+
+    it('renders sing-box from raw JSON template and injects nodes into empty groups', () => {
+        const template = {
+            log: { level: 'info' },
+            dns: { servers: [{ tag: 'local', address: '223.5.5.5' }] },
+            inbounds: [{ type: 'tun', tag: 'tun-in', auto_route: true }],
+            outbounds: [
+                {
+                    tag: '🚀 节点选择',
+                    type: 'selector',
+                    outbounds: ['♻️ 自动选择', 'DIRECT'],
+                },
+                {
+                    tag: '♻️ 自动选择',
+                    type: 'urltest',
+                    outbounds: [],
+                    url: 'http://cp.cloudflare.com/generate_204',
+                },
+                {
+                    tag: '👋 手动选择',
+                    type: 'selector',
+                    outbounds: ['*'],
+                },
+                { tag: 'DIRECT', type: 'direct' },
+            ],
+            route: { final: '🚀 节点选择' },
+        };
+
+        const rendered = renderSingboxFromJsonTemplate(JSON.stringify(template), {
+            nodeList: [
+                'trojan://password@1.2.3.4:443#HK-01',
+                'trojan://password@5.6.7.8:443#TW-01',
+            ].join('\n'),
+        });
+        const parsed = JSON.parse(rendered);
+        const nodeTags = parsed.outbounds
+            .filter((o) => o.type === 'trojan' || o.type === 'shadowsocks' || o.type === 'vmess')
+            .map((o) => o.tag);
+
+        expect(parsed.log.level).toBe('info');
+        expect(parsed.route.final).toBe('🚀 节点选择');
+        expect(nodeTags.length).toBe(2);
+        expect(nodeTags.some((tag) => tag.includes('HK-01'))).toBe(true);
+        expect(nodeTags.some((tag) => tag.includes('TW-01'))).toBe(true);
+        expect(parsed.outbounds.some((o) => o.tag === 'DIRECT')).toBe(true);
+        expect(parsed.outbounds.some((o) => o.tag === 'REJECT')).toBe(false);
+
+        const autoGroup = parsed.outbounds.find((o) => o.tag === '♻️ 自动选择');
+        expect(autoGroup.outbounds).toEqual(expect.arrayContaining(nodeTags));
+
+        const manualGroup = parsed.outbounds.find((o) => o.tag === '👋 手动选择');
+        expect(manualGroup.outbounds).toEqual(expect.arrayContaining(nodeTags));
+
+        const mainGroup = parsed.outbounds.find((o) => o.tag === '🚀 节点选择');
+        expect(mainGroup.outbounds).toEqual(['♻️ 自动选择', 'DIRECT']);
+    });
+
+    it('does not infer filters from arbitrary JSON template group names', () => {
+        const template = {
+            outbounds: [
+                { tag: '👋 手动选择', type: 'selector', outbounds: [] },
+                { tag: '🇭🇰 香港负载', type: 'urltest', outbounds: [] },
+                { tag: '🇨🇳 台湾负载', type: 'urltest', outbounds: [] },
+            ],
+        };
+        const rendered = renderSingboxFromJsonTemplate(JSON.stringify(template), {
+            nodeList: [
+                'trojan://password@1.2.3.4:443#香港-HK1',
+                'trojan://password@5.6.7.8:443#台湾-TW1',
+                'trojan://password@9.9.9.9:443#日本-JP1',
+            ].join('\n'),
+        });
+        const parsed = JSON.parse(rendered);
+        const manual = parsed.outbounds.find((o) => o.tag === '👋 手动选择');
+        const hk = parsed.outbounds.find((o) => o.tag === '🇭🇰 香港负载');
+        const tw = parsed.outbounds.find((o) => o.tag === '🇨🇳 台湾负载');
+
+        expect(manual.outbounds.length).toBe(3);
+        expect(hk.outbounds.length).toBe(3);
+        expect(tw.outbounds.length).toBe(3);
+    });
+
+    it('supports custom filter field on JSON template groups', () => {
+        const template = {
+            dns: {
+                servers: [{ tag: 'remote', type: 'https', server: '8.8.8.8', detour: '出口甲' }],
+            },
+            outbounds: [
+                { tag: '出口甲', type: 'urltest', outbounds: [], filter: '电视|TV' },
+                { tag: '出口乙', type: 'urltest', outbounds: [], filter: ['去广告', 'AdGuard'] },
+                { tag: '任意兜底名称', type: 'selector', outbounds: [] },
+            ],
+            route: {
+                final: '任意兜底名称',
+                rules: [{ domain_suffix: ['.example.com'], outbound: '出口甲' }],
+            },
+        };
+        const rendered = renderSingboxFromJsonTemplate(JSON.stringify(template), {
+            nodeList: [
+                'trojan://p@1.1.1.1:443#香港电视节点',
+                'trojan://p@2.2.2.2:443#香港节点',
+                'trojan://p@3.3.3.3:443#台湾去广告',
+                'trojan://p@4.4.4.4:443#日本普通',
+            ].join('\n'),
+        });
+        const parsed = JSON.parse(rendered);
+        const hk = parsed.outbounds.find((o) => o.tag === '出口甲');
+        const ads = parsed.outbounds.find((o) => o.tag === '出口乙');
+        const manual = parsed.outbounds.find((o) => o.tag === '任意兜底名称');
+
+        expect(hk.outbounds.length).toBe(1);
+        expect(hk.outbounds[0]).toContain('电视');
+        expect(hk.filter).toBeUndefined();
+        expect(ads.outbounds.length).toBe(1);
+        expect(ads.outbounds[0]).toContain('去广告');
+        expect(manual.outbounds.length).toBe(4);
+        expect(parsed.dns.servers[0].detour).toBe('出口甲');
+        expect(parsed.route.final).toBe('任意兜底名称');
+        expect(parsed.route.rules[0].outbound).toBe('出口甲');
+        expect(parsed.outbounds.some((outbound) => outbound.tag === '🚀 节点选择')).toBe(false);
+    });
+    it('rejects a custom group filter that matches no nodes', () => {
+        const template = {
+            outbounds: [
+                { tag: '🇭🇰 香港负载', type: 'urltest', outbounds: [], filter: '电视' },
+            ],
+        };
+        expect(() =>
+            renderSingboxFromJsonTemplate(JSON.stringify(template), {
+                nodeList: [
+                    'trojan://p@1.1.1.1:443#节点-01',
+                    'trojan://p@2.2.2.2:443#节点-02',
+                    'trojan://p@3.3.3.3:443#节点-03',
+                ].join('\n'),
+            })
+        ).toThrow('Sing-box template group "🇭🇰 香港负载" matched no nodes');
     });
 });

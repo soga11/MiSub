@@ -8,6 +8,8 @@ import { transformBuiltinSubscription } from '../modules/subscription/transforme
 import {
     renderClashFromIniTemplate,
     renderSingboxFromIniTemplate,
+    renderSingboxFromJsonTemplate,
+    isSingboxJsonTemplate,
     renderSurgeFromIniTemplate,
     renderLoonFromIniTemplate,
     renderQuanxFromIniTemplate,
@@ -211,7 +213,31 @@ export class ProcessorService {
                 builtinTemplateEntry || customTemplateEntry
             );
 
-            if (templateText && isIniTemplate) {
+            const isSingboxTarget = targetFormat === 'singbox' || targetFormat === 'sing-box';
+            const isJsonSingboxTemplate =
+                isSingboxTarget &&
+                templateText &&
+                (getTemplateExtension(templateSource?.value) === 'json' ||
+                    isSingboxJsonTemplate(templateText));
+
+            if (templateText && isJsonSingboxTemplate) {
+                const renderParams = {
+                    nodeList: combinedNodeList,
+                    fileName: subName,
+                    targetFormat,
+                    ruleLevel: builtinOptions.ruleLevel,
+                    interval: config.UpdateInterval || 86400,
+                    managedConfigUrl,
+                    skipCertVerify: builtinOptions.skipCertVerify,
+                    enableUdp: builtinOptions.enableUdp,
+                    isMeta: builtinOptions.isMeta,
+                    customDnsOverride: builtinOptions.customDnsOverride || '',
+                    dnsMode: builtinOptions.dnsMode || 'clean',
+                };
+                finalContent = renderSingboxFromJsonTemplate(templateText, renderParams);
+                contentType = 'application/json; charset=utf-8';
+                headers['X-MiSub-Template-Mode'] = 'singbox-json';
+            } else if (templateText && isIniTemplate) {
                 const renderParams = {
                     nodeList: combinedNodeList,
                     fileName: subName,

@@ -96,6 +96,7 @@ export function toExternalProfile(profile) {
         manualNodeIds: Array.isArray(profile.manualNodes)
             ? profile.manualNodes.filter(Boolean)
             : [],
+        autoIncludeManualNodes: profile.autoIncludeManualNodes === true,
         target: profile.target || 'clash',
         sortIndex: Number(profile.sortIndex) || 0,
         createdAt: profile.createdAt || null,
@@ -114,5 +115,8 @@ export function toInternalProfilePatch(payload = {}) {
     if ('sortIndex' in payload) internal.sortIndex = payload.sortIndex;
     if ('subscriptionIds' in payload) internal.subscriptions = payload.subscriptionIds;
     if ('manualNodeIds' in payload) internal.manualNodes = payload.manualNodeIds;
+    if ('autoIncludeManualNodes' in payload) {
+        internal.autoIncludeManualNodes = payload.autoIncludeManualNodes === true;
+    }
     return internal;
 }

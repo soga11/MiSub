@@ -133,6 +133,7 @@ curl -s \
 
 - 通过 `subscriptionIds` 引用远程订阅源
 - 通过 `manualNodeIds` 引用手动节点
+- 设置 `autoIncludeManualNodes: true` 后，自动包含当前及以后新增的全部手动节点
 
 profile 本身不直接内嵌完整资源内容，只维护引用关系。
 
@@ -235,7 +236,8 @@ curl -s -X POST \
     "description": "default profile",
     "target": "clash",
     "subscriptionIds": [],
-    "manualNodeIds": []
+    "manualNodeIds": [],
+    "autoIncludeManualNodes": false
   }' \
   "$MISUB_BASE_URL/profiles"
 ```

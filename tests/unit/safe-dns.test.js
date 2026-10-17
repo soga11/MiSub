@@ -31,6 +31,11 @@ describe('shared split DNS policy', () => {
                 (server) => server.type === 'https' && server.detour === DNS_PROXY_GROUP
             )
         ).toBe(true);
+        expect(
+            singbox.servers
+                .filter((server) => String(server.tag || '').startsWith('dns-cn-'))
+                .every((server) => server.detour === undefined)
+        ).toBe(true);
         expect(singbox.final).toBe('dns-foreign-1');
         expect(singbox.rules[0]).toEqual({
             rule_set: ['geosite-cn'],

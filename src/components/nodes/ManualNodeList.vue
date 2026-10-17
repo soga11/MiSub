@@ -19,7 +19,15 @@
         isPinging: Boolean,
     });
 
-    const emit = defineEmits(['delete', 'edit', 'toggle-select', 'filter-group', 'ping']);
+    const emit = defineEmits([
+        'delete',
+        'edit',
+        'toggle-select',
+        'filter-group',
+        'ping',
+        'move-to-top',
+        'duplicate',
+    ]);
     const { showToast } = useToastStore();
     const { t } = useI18n();
 
@@ -164,6 +172,27 @@
                         <!-- Header Actions for Mobile -->
                         <div v-if="!isSelectionMode" class="flex shrink-0 items-center gap-0.5">
                             <button
+                                @click.stop="emit('move-to-top')"
+                                class="rounded-md p-2 text-gray-400 transition-colors hover:bg-primary-500/10 hover:text-primary-500"
+                                :title="t('actions.moveToTop')"
+                                :aria-label="t('actions.moveToTop')"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M5 5h14M12 19V8m0 0-4 4m4-4 4 4"
+                                    />
+                                </svg>
+                            </button>
+                            <button
                                 @click.stop="emit('ping')"
                                 class="rounded-md p-2 text-gray-500 dark:text-gray-400 transition-colors hover:bg-green-500/10 hover:text-green-500"
                                 :title="t('actions.ping')"
@@ -204,6 +233,27 @@
                                         stroke-linecap="round"
                                         stroke-linejoin="round"
                                         d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                    />
+                                </svg>
+                            </button>
+                            <button
+                                @click.stop="emit('duplicate')"
+                                class="rounded-md p-2 text-gray-400 transition-colors hover:bg-primary-500/10 hover:text-primary-500"
+                                :title="t('actions.duplicate')"
+                                :aria-label="t('actions.duplicate')"
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    class="h-4 w-4"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-2M9 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v2m-6 4h6m-3-3v6"
                                     />
                                 </svg>
                             </button>
@@ -438,6 +488,27 @@
                 class="shrink-0 flex items-center gap-1 opacity-100 transition-opacity duration-200 group-hover:opacity-100 lg:opacity-0"
             >
                 <button
+                    @click.stop="emit('move-to-top')"
+                    class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-gray-400 transition-colors hover:bg-primary-500/10 hover:text-primary-500 lg:min-h-0 lg:min-w-0"
+                    :title="t('actions.moveToTop')"
+                    :aria-label="t('actions.moveToTop')"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M5 5h14M12 19V8m0 0-4 4m4-4 4 4"
+                        />
+                    </svg>
+                </button>
+                <button
                     @click.stop="emit('ping')"
                     class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-gray-500 dark:text-gray-400 transition-colors hover:bg-green-500/10 hover:text-green-500 lg:min-h-0 lg:min-w-0"
                     :title="t('actions.ping')"
@@ -478,6 +549,27 @@
                             stroke-linecap="round"
                             stroke-linejoin="round"
                             d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
+                    </svg>
+                </button>
+                <button
+                    @click.stop="emit('duplicate')"
+                    class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md p-2 text-gray-400 transition-colors hover:bg-primary-500/10 hover:text-primary-500 lg:min-h-0 lg:min-w-0"
+                    :title="t('actions.duplicate')"
+                    :aria-label="t('actions.duplicate')"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-2M9 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v2m-6 4h6m-3-3v6"
                         />
                     </svg>
                 </button>

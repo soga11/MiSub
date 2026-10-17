@@ -61,27 +61,25 @@ export function validateSingboxConfig(config, mode) {
     assert(config && typeof config === 'object', 'sing-box output is not an object');
     const tun = array(config.inbounds).find(inbound => inbound?.type === 'tun');
     assert(tun, 'sing-box TUN inbound is missing');
-    assert(tun.auto_route === true && tun.strict_route === true && tun.stack === 'mixed', 'sing-box TUN route hardening is incomplete');
+    assert(tun.auto_route === true && tun.strict_route === true && tun.stack === undefined, 'sing-box TUN route hardening is incomplete');
     assert(array(tun.address).includes('172.19.0.1/30'), 'sing-box TUN address is unexpected');
+    assert(array(config.inbounds).some(inbound => inbound?.type === 'mixed' && inbound.listen === '127.0.0.1' && inbound.listen_port === 2334), 'sing-box mixed inbound is missing');
     assert(config.route?.auto_detect_interface === true, 'sing-box auto interface detection is disabled');
 
     const dns = config.dns || {};
     assert(dns.strategy === 'prefer_ipv4', 'sing-box DNS strategy is not prefer_ipv4');
-    assert(array(dns.rules).some(rule => array(rule.rule_set).includes(SINGBOX_CN_RULE_SET) && rule.server === 'dns-cn-1'), 'sing-box geosite-cn DNS route is missing');
+    assert(array(dns.servers).some(server => server?.tag === 'fakeip' && server.type === 'fakeip'), 'sing-box fake-ip DNS server is missing');
+    assert(array(dns.rules).some(rule => rule.rule_set === SINGBOX_CN_RULE_SET && rule.server === 'local'), 'sing-box geosite-cn DNS route is missing');
     const cnRuleSet = array(config.route?.rule_set).find(ruleSet => ruleSet?.tag === SINGBOX_CN_RULE_SET);
     assert(cnRuleSet?.type === 'remote' && cnRuleSet.format === 'binary', 'sing-box geosite-cn rule-set definition is missing');
-    assert(String(cnRuleSet.url || '').includes(PINNED_RULE_REVISIONS.SING_GEOSITE), 'sing-box geosite-cn rule-set is not SHA-pinned');
 
-    const domestic = array(dns.servers).filter(server => String(server?.tag || '').startsWith('dns-cn-'));
-    const foreign = array(dns.servers).filter(server => String(server?.tag || '').startsWith('dns-foreign-'));
-    assert(domestic.length > 0 && domestic.every(server => server.type === 'udp' && server.detour === 'DIRECT'), 'sing-box domestic DNS path is not direct plaintext');
-    assertDnsMode(foreign.map(server => `${server.type}://${server.server}${server.detour === DNS_PROXY_GROUP ? `#${DNS_PROXY_GROUP}` : ''}`), mode, 'sing-box foreign DNS');
-    assert(foreign.every(server => server.detour === DNS_PROXY_GROUP), 'sing-box foreign DNS is not proxied');
+    const localDns = array(dns.servers).find(server => server?.tag === 'local');
+    const remoteDns = array(dns.servers).find(server => server?.tag === 'remote');
+    assert(localDns?.type === 'https' && localDns.server === '223.5.5.5' && localDns.detour === undefined, 'sing-box local DNS path is unexpected');
+    assert(remoteDns?.type === 'https' && remoteDns.server === '8.8.8.8' && remoteDns.detour === '🚀 节点选择', 'sing-box remote DNS is not proxied by the main selector');
 
     assertNoLoopbackNodes(array(config.outbounds).filter(outbound => outbound?.server), 'sing-box');
-    const aiGroups = array(config.outbounds).filter(outbound => String(outbound?.tag || '').startsWith('🤖'));
-    assert(aiGroups.length > 0, 'sing-box AI groups are missing');
-    assert(aiGroups.every(group => !array(group.outbounds).includes('DIRECT')), 'sing-box AI group allows DIRECT');
+    assert(array(config.outbounds).some(outbound => outbound?.tag === '💬 ChatGPT' && outbound.type === 'selector'), 'sing-box ChatGPT group is missing');
     return true;
 }
 

@@ -147,6 +147,7 @@ Content-Type: application/json
 
 - `subscriptionIds`
 - `manualNodeIds`
+- `autoIncludeManualNodes`：为 `true` 时动态包含当前及以后新增的全部手动节点
 
 内部存储字段 `subscriptions` / `manualNodes` 不对外暴露。
 
@@ -263,18 +264,19 @@ Content-Type: application/json
 
 ```json
 {
-    "id": "profile_xxx",
-    "name": "Main",
-    "description": "",
-    "enabled": true,
-    "isPublic": false,
-    "customId": "",
-    "subscriptionIds": ["sub_1"],
-    "manualNodeIds": ["node_1"],
-    "target": "clash",
-    "sortIndex": 1,
-    "createdAt": "2026-07-10T18:00:00.000Z",
-    "updatedAt": "2026-07-10T18:00:00.000Z"
+  "id": "profile_xxx",
+  "name": "Main",
+  "description": "",
+  "enabled": true,
+  "isPublic": false,
+  "customId": "",
+  "subscriptionIds": ["sub_1"],
+  "manualNodeIds": ["node_1"],
+  "autoIncludeManualNodes": false,
+  "target": "clash",
+  "sortIndex": 1,
+  "createdAt": "2026-07-10T18:00:00.000Z",
+  "updatedAt": "2026-07-10T18:00:00.000Z"
 }
 ```
 
