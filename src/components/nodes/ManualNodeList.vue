@@ -1,6 +1,7 @@
 <script setup>
     import { computed } from 'vue';
-    import { extractHostAndPort } from '../../lib/utils.js';
+    import InlineEdit from '../ui/InlineEdit.vue';
+    import { parseNodeHostPort, replaceHostPort } from '../../lib/nodeAddress.js';
     import { useToastStore } from '../../stores/toast.js';
     import { useI18n } from '@/i18n/index.js';
 
@@ -27,6 +28,7 @@
         'ping',
         'move-to-top',
         'duplicate',
+        'patch',
     ]);
     const { showToast } = useToastStore();
     const { t } = useI18n();
@@ -63,7 +65,34 @@
     };
 
     const protocol = computed(() => getProtocol(props.node.url));
-    const hostAndPort = computed(() => extractHostAndPort(props.node.url));
+    const hostAndPort = computed(() => parseNodeHostPort(props.node.url));
+
+    // 该格式是否支持就地改地址（vmess 可改，ss/ssr 纯 base64 不可改）
+    const canEditAddress = computed(() => {
+        const { host, port } = hostAndPort.value;
+        if (!host) return false;
+        return replaceHostPort(props.node.url, host, port || '').ok;
+    });
+
+    function patchField(changes) {
+        emit('patch', { id: props.node.id, changes });
+    }
+
+    function saveName(v) {
+        patchField({ name: v });
+    }
+
+    function saveHost(v) {
+        const r = replaceHostPort(props.node.url, v, hostAndPort.value.port);
+        if (!r.ok) throw new Error(r.error);
+        patchField({ url: r.url });
+    }
+
+    function savePort(v) {
+        const r = replaceHostPort(props.node.url, hostAndPort.value.host, v);
+        if (!r.ok) throw new Error(r.error);
+        patchField({ url: r.url });
+    }
 
     const protocolStyle = computed(() => {
         const p = protocol.value;
@@ -303,12 +332,14 @@
                     </div>
 
                     <div class="flex flex-row items-center gap-2 mt-1">
-                        <p
-                            class="flex-1 break-words text-sm font-semibold leading-snug text-gray-900 dark:text-white"
+                        <InlineEdit
+                            class="min-w-0 flex-1 text-sm font-semibold leading-snug text-gray-900 dark:text-white"
+                            :value="node.name"
+                            type="text"
+                            :placeholder="t('manualNodes.unnamed')"
                             :title="node.name"
-                        >
-                            {{ node.name || t('manualNodes.unnamed') }}
-                        </p>
+                            :save="saveName"
+                        />
                         <div
                             v-if="pingResult"
                             class="flex shrink-0 flex-row items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
@@ -354,9 +385,23 @@
                         </div>
                     </div>
 
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">
-                        {{ hostAndPort.host || 'N/A' }}:{{ hostAndPort.port || 'N/A' }}
-                    </p>
+                    <div class="mt-1 flex items-center gap-0.5 font-mono text-xs text-gray-500 dark:text-gray-400">
+                        <InlineEdit
+                            :value="hostAndPort.host"
+                            type="ip"
+                            placeholder="N/A"
+                            :disabled="!canEditAddress"
+                            :save="saveHost"
+                        />
+                        <span>:</span>
+                        <InlineEdit
+                            :value="hostAndPort.port"
+                            type="port"
+                            placeholder="N/A"
+                            :disabled="!canEditAddress"
+                            :save="savePort"
+                        />
+                    </div>
                 </div>
             </div>
         </div>
@@ -419,12 +464,14 @@
             </div>
 
             <div class="min-w-0 flex items-center gap-2 pr-4">
-                <p
-                    class="truncate text-sm font-semibold text-gray-900 dark:text-white"
+                <InlineEdit
+                    class="min-w-0 text-sm font-semibold text-gray-900 dark:text-white"
+                    :value="node.name"
+                    type="text"
+                    :placeholder="t('manualNodes.unnamed')"
                     :title="node.name"
-                >
-                    {{ node.name || t('manualNodes.unnamed') }}
-                </p>
+                    :save="saveName"
+                />
                 <div
                     v-if="pingResult"
                     class="flex shrink-0 flex-row items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium"
@@ -469,18 +516,26 @@
             </div>
 
             <div class="min-w-0">
-                <p
-                    class="font-mono text-xs text-gray-500 dark:text-gray-400 truncate"
+                <InlineEdit
+                    class="font-mono text-xs text-gray-500 dark:text-gray-400"
+                    :value="hostAndPort.host"
+                    type="ip"
+                    placeholder="N/A"
+                    :disabled="!canEditAddress"
                     :title="hostAndPort.host"
-                >
-                    {{ hostAndPort.host || 'N/A' }}
-                </p>
+                    :save="saveHost"
+                />
             </div>
 
-            <div class="w-16 text-center">
-                <p class="font-mono text-xs text-gray-500 dark:text-gray-400">
-                    {{ hostAndPort.port || 'N/A' }}
-                </p>
+            <div class="flex w-16 justify-center">
+                <InlineEdit
+                    class="font-mono text-xs text-gray-500 dark:text-gray-400"
+                    :value="hostAndPort.port"
+                    type="port"
+                    placeholder="N/A"
+                    :disabled="!canEditAddress"
+                    :save="savePort"
+                />
             </div>
 
             <div

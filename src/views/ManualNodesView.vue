@@ -96,6 +96,13 @@
         // cleanupNodes 已在 deleteNode 内部通过 removeManualNodeFromProfiles 实现
     };
 
+    // 行内编辑：名称 / 地址 / 端口
+    const handleInlinePatch = ({ id, changes }) => {
+        const node = manualNodes.value.find((n) => n.id === id);
+        if (!node) return;
+        updateNode({ ...node, ...changes });
+    };
+
     const handleDeleteAllNodesWithCleanup = () => {
         deleteAllNodes();
         // cleanupAllNodes 已在 deleteAllNodes 内部通过 removeManualNodeFromProfiles 实现
@@ -219,6 +226,7 @@
             @ping="pingNodeId"
             @ping-all="pingAllNodes"
             @sort-by-latency="handleSortByLatency"
+            @patch="handleInlinePatch"
         />
 
         <ManualNodeEditModal

@@ -49,6 +49,7 @@
         'manage-groups',
         'move-to-top',
         'duplicate',
+        'patch',
     ]);
 
     const isSelectionMode = ref(false);
@@ -252,6 +253,7 @@
             @ping="emit('ping', $event)"
             @move-to-top="handleMoveToTop"
             @duplicate="handleDuplicate"
+            @patch="emit('patch', $event)"
         />
     </div>
 </template>

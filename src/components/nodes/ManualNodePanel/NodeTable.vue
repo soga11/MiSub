@@ -104,6 +104,7 @@
                                 @ping="emit('ping', node.id)"
                                 @move-to-top="emit('move-to-top', node.id)"
                                 @duplicate="emit('duplicate', node.id)"
+                                @patch="emit('patch', $event)"
                                 />
                         </div>
                     </template>
@@ -133,6 +134,7 @@
                                 @ping="emit('ping', node.id)"
                                 @move-to-top="emit('move-to-top', node.id)"
                                 @duplicate="emit('duplicate', node.id)"
+                                @patch="emit('patch', $event)"
                                 />
                         </div>
                     </template>
@@ -170,6 +172,7 @@
                         @ping="emit('ping', node.id)"
                         @move-to-top="emit('move-to-top', node.id)"
                         @duplicate="emit('duplicate', node.id)"
+                        @patch="emit('patch', $event)"
                         />
                 </div>
             </div>
@@ -196,6 +199,7 @@
                     @ping="emit('ping', node.id)"
                     @move-to-top="emit('move-to-top', node.id)"
                     @duplicate="emit('duplicate', node.id)"
+                    @patch="emit('patch', $event)"
                     />
             </div>
         </div>
